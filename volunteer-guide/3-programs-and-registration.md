@@ -101,7 +101,8 @@ If you try to leave with unsaved changes, it asks first.
 - **Program Format**: in person, virtual (online), or hybrid. This is about delivery, not the Format label in "Where it appears."
 - **Venue**, **Location Text**, **Location Link**: where it happens. "At RIM" fills in RIM's address. The Location Link shows as "Map and directions" in the confirmation email.
 - **Start Date & Time**, **End Date & Time**: for a single-day event, both on the same date. For a repeating program, the end is the time each session ends, not the last date of the series.
-- **Recurrence**: for repeating programs. Choose the pattern, the days and how many times (leave blank for ongoing). A monthly program repeats on the same weekday position as its start, such as "last Sunday" or "2nd Wednesday."
+- **Recurrence**: for repeating programs. Choose the pattern, the days and how many times (leave blank for ongoing). A monthly program repeats on the same weekday position as its start, such as "last Sunday" or "2nd Wednesday." The number counts real sessions: 4 sessions on Mondays and Wednesdays is Monday, Wednesday, Monday, Wednesday.
+- **What Save won't take** (since October 28, 2026), so a schedule can't mean something other than it says: a weekly program with no day ticked; a first session on a day it doesn't meet (start it on one of its days); an End date later than the start for a repeating program (the end is the time each session ends, on the first session's day); every 3 weeks or more, or Daily, for a new schedule; a series of fewer than 2 sessions; an end before it begins. Save says which, under When and where, and nothing is saved.
 - **Schedule Label** and **Time Label**: made automatically from the dates. To change them, change the dates.
 - **Session note**: one quiet line shown with the session on My Home on the day, such as "Doors open ten minutes before." It doesn't appear on public pages.
 - **Where it meets online** (virtual and hybrid): RIM's Zoom (the usual choice) or "An outside meeting link" for a program that meets in someone else's room. A **Who can join, with these settings** summary says who gets in and how. **Open Access** is a guest link for people without a RIM account; it works only around session times.
@@ -171,6 +172,7 @@ Three emails, in the order people get them. A line at the top says how to add a 
 - **Format**: Drop-in, Class, Course, Workshop, Day of mindfulness, Retreat. A label on cards.
 - **Silent meditation** (for drop-ins) and **Hosted by volunteers**: labels.
 - **Where this program appears**: a readout saying whether the program is on Programs & Events, This Week and My Home, and if not, the one reason why.
+- **The order on Programs & Events** (since October 28, 2026): there's no number to set. Each section lists programs that go on by their first day of the week (Monday first) and time, then programs with an end by their first session. The Kalyana Mitta groups page and the Programs list use the same order.
 - **Hide from public Programs & Events page** (this also hides it from This Week), **Hide from This Week's Schedule**, **Hide automatically after the date passes** (one-time programs: it leaves the listings once its day is over and is archived the next morning), **Hide from member home** (affects online sessions on My Home).
 
 Private programs are left off This Week.

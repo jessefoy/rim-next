@@ -120,7 +120,7 @@ export default async function ProgramStaffingPage({
       recurrenceDays: true,
       recurrenceFreq: true,
       recurrenceInterval: true,
-      recurrenceCount: true,
+      recurrenceCount: true, recurrenceUntil: true,
       startDatetime: true,
       endDatetime: true,
       archivedAt: true,

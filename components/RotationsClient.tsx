@@ -61,6 +61,7 @@ function upcomingDates(dayOfWeek: DayOfWeek, count: number, program: Program | u
     id: program.id ?? "",
     startDatetime: program.startDatetime ? new Date(program.startDatetime) : null,
     endDatetime: program.endDatetime ? new Date(program.endDatetime) : null,
+    recurrenceUntil: program.recurrenceUntil ? new Date(program.recurrenceUntil) : null,
   };
   const target = DAY_TO_JS[dayOfWeek];
   const today = ctDateStr(new Date().toISOString());

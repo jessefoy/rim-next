@@ -686,7 +686,7 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
           program: {
             select: {
               id: true, name: true, slug: true, programFormat: true, startDatetime: true, endDatetime: true,
-              recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, archivedAt: true,
+              recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true, archivedAt: true,
             },
           },
         },

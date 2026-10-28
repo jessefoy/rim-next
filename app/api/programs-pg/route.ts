@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { canUseProgramManager, canUsePrograms } from "@/lib/toolAuth";
 import { createProgram } from "@/lib/programSave";
+import { inListingOrder } from "@/lib/programOrder";
 
 // Team-wide emails go one at a time after the response (sendEachPaced),
 // so the function needs room past the usual limit (2026-10-19).
@@ -20,11 +21,11 @@ export async function GET() {
   }
 
   const programs = await db.program.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    orderBy: { name: "asc" },
     include: { category: true },
   });
 
-  return NextResponse.json(programs);
+  return NextResponse.json(inListingOrder(programs));
 }
 
 export async function POST(request: NextRequest) {

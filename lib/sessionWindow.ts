@@ -228,7 +228,7 @@ export async function assertSessionDateInWindow(
       recurrenceFreq: true,
       recurrenceInterval: true,
       recurrenceDays: true,
-      recurrenceCount: true,
+      recurrenceCount: true, recurrenceUntil: true,
     },
   });
   if (!program) {

@@ -673,7 +673,7 @@ async function newProgramEmails(payload: Record<string, unknown>): Promise<strin
   return [`This will start the program and email the members of ${listWords(await teamNames([...slugs]))} that there's a new program for them to cover.`];
 }
 
-const SCHEDULE_PARTS = ["startDatetime", "endDatetime", "recurrenceFreq", "recurrenceInterval", "recurrenceDays", "recurrenceCount"];
+const SCHEDULE_PARTS = ["startDatetime", "endDatetime", "recurrenceFreq", "recurrenceInterval", "recurrenceDays", "recurrenceCount", "recurrenceUntil"];
 
 /**
  * Who a program change may email (as saveProgram does): a newly ticked

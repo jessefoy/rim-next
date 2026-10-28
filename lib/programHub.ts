@@ -410,7 +410,7 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
     select: {
       id: true, name: true, slug: true, programFormat: true, archivedAt: true,
       startDatetime: true, endDatetime: true,
-      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
     },
   });
   if (!program || program.archivedAt || !program.startDatetime) return { sessions: [], rotations: 0 };

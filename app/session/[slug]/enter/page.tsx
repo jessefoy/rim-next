@@ -81,7 +81,7 @@ export default async function ZoomEnterPage({
       recurrenceFreq: true,
       recurrenceInterval: true,
       recurrenceDays: true,
-      recurrenceCount: true,
+      recurrenceCount: true, recurrenceUntil: true,
       archivedAt: true,
       registrationEnabled: true,
       openEntry: true,

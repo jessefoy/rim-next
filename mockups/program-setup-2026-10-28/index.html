@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setting up a program, step by step (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://rim-next.vercel.app/css/custom.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Mockup only (2026-10-28): the program setup as a guided walk-through.
+   Tokens from the live custom.css; nothing here ships. See CONCEPT.md. */
+
+/* The guide bar: not part of the app. */
+.mk-guide { background: var(--rim-heading, #1f3a4a); color: #fff; padding: 12px 24px; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; position: sticky; top: 0; z-index: 200; }
+.mk-guide__inner { max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.mk-guide__label { font-weight: 700; margin-right: 4px; }
+.mk-guide__btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.mk-guide button { font: inherit; color: #fff; background: transparent; border: 1px solid rgba(255,255,255,.55); border-radius: 9999px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
+.mk-guide button[aria-pressed="true"] { background: #fff; color: var(--rim-blue); border-color: #fff; font-weight: 600; }
+.mk-guide__note { width: 100%; margin: 0; color: rgba(255,255,255,.92); max-width: 110ch; }
+.mk-guide__sub { font-weight: 700; margin-right: 4px; opacity: .85; }
+[hidden] { display: none !important; }
+@media (max-width: 768px) { .mk-guide { position: static; padding: 12px 16px; } }
+.mk-page .nav { position: relative; top: auto; }
+
+/* ── The app's working page ── */
+.ps-wrap { max-width: 1120px; }
+.ps-head { margin: 0 0 var(--space-3); }
+.ps-head__back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--rim-blue); text-decoration: none; font-size: var(--text-app, 16px); }
+.ps-head h1 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h2); line-height: var(--lh-heading); color: var(--rim-heading); margin: 4px 0 6px; overflow-wrap: anywhere; }
+.ps-head__state { margin: 0; color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); }
+.ps-head__state strong { color: var(--rim-heading); font-weight: 600; }
+
+.ps-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--space-4); align-items: start; }
+@media (max-width: 1000px) { .ps-grid { grid-template-columns: 1fr; } }
+
+/* The step: one question */
+.ps-step { background: var(--rim-surface, #fff); border: 1px solid var(--rim-rule); border-radius: 12px; padding: var(--space-4); }
+@media (max-width: 430px) { .ps-step { padding: var(--space-3) 16px; } }
+.ps-step__where { margin: 0 0 6px; font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+.ps-step__q { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h3); line-height: var(--lh-heading); color: var(--rim-heading); margin: 0 0 8px; }
+.ps-step__help { margin: 0 0 var(--space-3); color: var(--rim-text); max-width: 60ch; }
+.ps-step__body > * + * { margin-top: var(--space-3); }
+.ps-step__nav { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--rim-rule); }
+.ps-step__nav .pe-btn { min-height: 48px; padding: 0 24px; }
+.ps-step__nav .ps-skip { margin-left: auto; }
+@media (max-width: 430px) { .ps-step__nav .ps-skip { margin-left: 0; } }
+
+/* Choices: big, plain, one tap */
+.ps-choices { display: grid; gap: 10px; }
+.ps-choices--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 600px) { .ps-choices--two { grid-template-columns: 1fr; } }
+.ps-choice { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--rim-rule); border-radius: 10px; background: #fff; cursor: pointer; min-height: 44px; box-sizing: border-box; }
+.ps-choice:hover { border-color: var(--rim-blue); }
+.ps-choice input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--rim-blue); }
+.ps-choice__text strong { display: block; color: var(--rim-heading); font-weight: 600; }
+.ps-choice__text span { display: block; color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); margin-top: 2px; }
+.ps-choice:has(input:checked) { border-color: var(--rim-blue); box-shadow: inset 0 0 0 1px var(--rim-blue); background: var(--rim-bg-bright, #faf9f7); }
+.ps-choice:has(input:focus-visible) { outline: 3px solid var(--rim-blue); outline-offset: 2px; }
+.ps-choice--locked { opacity: .6; cursor: not-allowed; }
+
+/* Fields */
+.ps-field { display: flex; flex-direction: column; gap: 6px; }
+.ps-field__label { font-weight: 600; color: var(--rim-heading); }
+.ps-field__hint { color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); margin: 0; }
+.ps-input, .ps-field select, .ps-field textarea { font: inherit; font-size: 16px; min-height: 48px; padding: 10px 14px; border: 1px solid var(--rim-rule); border-radius: 8px; background: #fff; color: var(--rim-text); box-sizing: border-box; width: 100%; max-width: 560px; }
+.ps-field textarea { min-height: 120px; line-height: 1.55; }
+.ps-step .ps-input--short { max-width: 140px; }
+.ps-input:focus-visible, .ps-field select:focus-visible, .ps-field textarea:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 1px; }
+.ps-row { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
+.ps-check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding-top: 10px; box-sizing: border-box; }
+.ps-check input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--rim-blue); }
+
+/* Days of the week */
+.ps-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; max-width: 560px; }
+.ps-day { display: flex; align-items: center; justify-content: center; min-height: 48px; border: 1px solid var(--rim-rule); border-radius: 10px; cursor: pointer; font-weight: 600; color: var(--rim-heading); background: #fff; user-select: none; }
+.ps-day input { position: absolute; opacity: 0; pointer-events: none; }
+.ps-day:has(input:checked) { background: var(--rim-blue); color: #fff; border-color: var(--rim-blue); }
+.ps-day:has(input:focus-visible) { outline: 3px solid var(--rim-blue); outline-offset: 2px; }
+
+/* The calendar: only days it meets can be chosen */
+.ps-cal { max-width: 380px; border: 1px solid var(--rim-rule); border-radius: 12px; padding: 12px; background: #fff; }
+.ps-cal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.ps-cal__head strong { color: var(--rim-heading); }
+.ps-cal__nav { font: inherit; background: none; border: 0; color: var(--rim-blue); min-width: 44px; min-height: 44px; cursor: pointer; border-radius: 8px; }
+.ps-cal__nav:hover { background: var(--rim-bg-bright, #faf9f7); }
+.ps-cal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; }
+.ps-cal__dow { font-size: 13px; color: var(--rim-text-soft); padding: 4px 0; }
+.ps-cal__day { font: inherit; min-height: 44px; border: 0; border-radius: 8px; background: none; color: var(--rim-text-soft); opacity: .45; }
+.ps-cal__day--ok { opacity: 1; color: var(--rim-heading); font-weight: 600; cursor: pointer; background: var(--rim-bg-bright, #f6f3ee); }
+.ps-cal__day--ok:hover { background: var(--rim-bg, #efe9e1); }
+.ps-cal__day--on { background: var(--rim-blue) !important; color: #fff !important; }
+.ps-cal__day:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 1px; }
+.ps-cal__foot { margin: 8px 0 0; font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+
+/* What it makes: the sentence and the dates */
+.ps-result { background: var(--rim-bg-bright, #faf9f7); border-radius: 10px; padding: 14px 16px; }
+.ps-result__label { margin: 0 0 4px; font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+.ps-result__sentence { margin: 0; font-weight: 600; color: var(--rim-heading); }
+.ps-result__dates { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; list-style: none; }
+.ps-result__dates li { background: #fff; border: 1px solid var(--rim-rule); border-radius: 8px; padding: 4px 10px; font-size: var(--text-app-meta, 15px); white-space: nowrap; }
+.ps-result__more { margin: 8px 0 0; font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+
+/* A plain note: changed your mind, or worth a look */
+.ps-note { background: var(--rim-bg-bright, #faf9f7); border-radius: 8px; padding: 10px 14px; margin: 0; }
+.ps-note--look { background: var(--color-warning-bg, #fdf4e3); color: var(--color-warning, #7a5300); }
+.ps-note strong { color: var(--rim-heading); }
+.ps-note p { margin: 0; }
+.ps-note p + p { margin-top: 6px; }
+.ps-inline-btn { font: inherit; color: var(--rim-blue); background: none; border: 0; padding: 0; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* So far: the program taking shape, which is also the trail */
+.ps-sofar { position: sticky; top: 76px; background: var(--rim-surface, #fff); border: 1px solid var(--rim-rule); border-radius: 12px; overflow: hidden; }
+.ps-sofar__title { margin: 0; padding: 14px 16px; background: var(--rim-blue); color: #fff; font-weight: 600; font-size: var(--text-app, 16px); }
+.ps-sofar__list { list-style: none; margin: 0; padding: 4px 0; }
+.ps-sofar__sec { padding: 10px 16px; border-top: 1px solid var(--rim-rule); }
+.ps-sofar__sec:first-child { border-top: 0; }
+.ps-sofar__name { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--rim-heading); margin: 0; }
+.ps-sofar__mark { width: 20px; height: 20px; flex: none; border-radius: 50%; border: 2px solid var(--rim-rule); box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; }
+.ps-sofar__sec--done .ps-sofar__mark { background: var(--rim-blue); border-color: var(--rim-blue); color: #fff; }
+.ps-sofar__sec--now .ps-sofar__mark { border-color: var(--rim-blue); }
+.ps-sofar__sec--now .ps-sofar__name { color: var(--rim-blue); }
+.ps-sofar__mark svg { width: 13px; height: 13px; }
+.ps-sofar__answers { list-style: none; margin: 4px 0 0 28px; padding: 0; }
+.ps-sofar__answers li { margin: 0; }
+.ps-sofar__answer { font: inherit; font-size: var(--text-app-meta, 15px); text-align: left; color: var(--rim-text); background: none; border: 0; padding: 4px 0; min-height: 32px; cursor: pointer; text-decoration: underline; text-decoration-color: var(--rim-rule); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.ps-sofar__answer:hover { color: var(--rim-blue); text-decoration-color: currentColor; }
+.ps-sofar__answer--now { color: var(--rim-blue); font-weight: 600; }
+.ps-sofar__foot { margin: 0; padding: 10px 16px 14px; border-top: 1px solid var(--rim-rule); font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+@media (max-width: 1000px) {
+  .ps-sofar { position: static; order: -1; }
+  .ps-sofar details > summary { list-style: none; cursor: pointer; }
+}
+.ps-sofar details > summary::-webkit-details-marker { display: none; }
+.ps-sofar__toggle { display: none; }
+@media (max-width: 1000px) {
+  .ps-sofar__toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; min-height: 48px; box-sizing: border-box; font-weight: 600; color: var(--rim-heading); }
+  .ps-sofar__title { display: none; }
+  .ps-sofar details:not([open]) .ps-sofar__list, .ps-sofar details:not([open]) .ps-sofar__foot { display: none; }
+}
+
+/* Review and the program's own page: sentences, each with Change */
+.ps-review { display: grid; gap: var(--space-3); }
+.ps-card { background: var(--rim-surface, #fff); border: 1px solid var(--rim-rule); border-radius: 12px; overflow: hidden; }
+.ps-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--rim-blue); color: #fff; }
+.ps-card__head h2 { margin: 0; font-family: var(--font-sans); font-size: var(--text-app, 16px); font-weight: 600; color: #fff; }
+.ps-card__change { font: inherit; color: #fff; background: none; border: 1px solid rgba(255,255,255,.7); border-radius: 9999px; padding: 0 16px; min-height: 40px; cursor: pointer; }
+.ps-card__change:hover { background: rgba(255,255,255,.12); }
+.ps-card__body { padding: 14px 16px; }
+.ps-card__body p { margin: 0; }
+.ps-card__body p + p { margin-top: 6px; }
+.ps-card__body .ps-result__dates { margin-top: 10px; }
+.ps-card__look { color: var(--color-warning, #9a6b00); font-weight: 600; }
+.ps-effects { list-style: none; margin: 0; padding: 0; }
+.ps-effects li { padding: 10px 0; border-top: 1px solid var(--rim-rule); display: flex; gap: 10px; align-items: flex-start; }
+.ps-effects li:first-child { border-top: 0; padding-top: 0; }
+.ps-effects i, .ps-effects svg { flex: none; width: 20px; height: 20px; color: var(--rim-blue); margin-top: 2px; }
+.ps-publish { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.ps-publish .pe-btn { min-height: 48px; padding: 0 28px; }
+.ps-done { background: var(--color-success-bg, #e8f3ec); border-radius: 10px; padding: 14px 16px; margin: 0 0 var(--space-3); }
+.ps-done strong { color: var(--color-success, #1f6b3a); }
+.ps-done p { margin: 0; }
+.ps-done p + p { margin-top: 4px; }
+
+/* Shapes on the start page */
+.ps-shapes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 600px) { .ps-shapes { grid-template-columns: 1fr; } }
+
+/* Questions list in How people join */
+.ps-qs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ps-q { border: 1px solid var(--rim-rule); border-radius: 10px; padding: 12px 14px; background: #fff; }
+.ps-q__top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.ps-q__label { font-weight: 600; color: var(--rim-heading); }
+.ps-q__meta { color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); margin: 4px 0 0; }
+
+button.app-back, button.app-act { font: inherit; background: none; border: 0; padding: 0 4px; min-height: 44px; color: var(--rim-blue); cursor: pointer; }
+button.app-act { text-decoration: underline; text-underline-offset: 3px; }
+.mk-sample { font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); font-style: italic; }
+.ps-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="mk-guide" role="region" aria-label="Mockup guide">
+  <div class="mk-guide__inner">
+    <span class="mk-guide__label">Mockup · sample program, not live</span>
+    <div class="mk-guide__btns" role="group" aria-label="Screens">
+      <button type="button" data-go="start" aria-pressed="true">1 · Start</button>
+      <button type="button" data-go="walk" aria-pressed="false">2 · The walk-through</button>
+      <button type="button" data-go="review" aria-pressed="false">3 · Review and publish</button>
+      <button type="button" data-go="program" aria-pressed="false">4 · After it's set up</button>
+      <button type="button" data-go="change" aria-pressed="false">5 · Changing the schedule later</button>
+    </div>
+    <div class="mk-guide__btns" role="group" aria-label="Try a mistake">
+      <span class="mk-guide__sub">Try:</span>
+      <button type="button" data-try="photo" aria-pressed="false">Mindful Photography's end date</button>
+      <button type="button" data-try="saturday" aria-pressed="false">A Saturday start</button>
+      <button type="button" data-try="mind" aria-pressed="false">Change your mind mid-way</button>
+      <button type="button" data-try="hours" aria-pressed="false">5 AM for 5 PM</button>
+    </div>
+    <p class="mk-guide__note" id="mk-note" aria-live="polite"></p>
+  </div>
+</div>
+
+<div class="mk-page">
+<header class="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="#"><img src="https://rim-next.vercel.app/images/Rooted-In-Mindfulness-Logo.png" alt="Rooted In Mindfulness" height="45"><span class="nav__brand-name">Rooted In Mindfulness</span></a>
+    <nav class="nav__desktop" aria-label="Main navigation">
+      <a class="nav__link" href="#">New to RIM</a><a class="nav__link" href="#">Practice</a><a class="nav__link" href="#">Programs</a><a class="nav__link" href="#">About</a><a class="nav__link" href="#">Get Involved</a><a class="nav__link" href="#">My Home</a>
+    </nav>
+    <a class="nav__donate" href="#">Donate</a>
+    <button type="button" class="nav__menu-btn" aria-expanded="false"><svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12"></path></svg>Menu</button>
+  </div>
+</header>
+
+<div class="hub-ws-layout">
+  <div class="hub-ws-mobilebar"><button type="button" class="hub-ws-mobilebar__btn" aria-label="Open the team menu"><i data-lucide="menu"></i></button><div class="hub-ws-mobilebar__name">Program Central</div></div>
+  <nav class="hub-ws-sidebar" aria-label="Team navigation">
+    <div class="hub-ws-identity"><div class="hub-ws-identity__type">Team</div><div class="hub-ws-identity__name">Program Central</div><div class="hub-ws-identity__meta">Led by Jesse and LoriLee · 5 members</div></div>
+    <div class="hub-ws-divider" aria-hidden="true"></div>
+    <div class="hub-ws-group">
+      <a class="hub-ws-link" href="#"><i data-lucide="home" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Home</span></a>
+      <a class="hub-ws-link hub-ws-link--primary hub-ws-link--active" href="#" aria-current="page"><i data-lucide="clipboard-list" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Programs</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="history" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Updates</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="messages-square" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Conversations</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="folder-open" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Files</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="users-round" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Members</span></a>
+    </div>
+    <div class="hub-ws-footer"><a class="hub-ws-footer__link" href="#"><i data-lucide="chevron-left"></i><span>My Teams</span></a><a class="hub-ws-footer__link" href="#"><i data-lucide="user-round"></i><span>My Profile</span></a></div>
+  </nav>
+  <div class="hub-ws-main">
+    <div class="hub-ws-content hub-ws-content--wide ps-wrap" id="app"></div>
+  </div>
+</div>
+</div>
+
+<script>
+/* dates.js */
+/* The session-date rule the walk-through proposes (mockup only).
+   A schedule is: how often, which days, first session, how it ends.
+   The first session is always a real session; "ends after N" counts real
+   sessions; "ends on" includes that day. Dates are "YYYY-MM-DD" Central days. */
+(function (root) {
+  const DAY = 86400000;
+  const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MONTH = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const ORD = ["", "1st", "2nd", "3rd", "4th"];
+  const t = (d) => Date.parse(d + "T12:00:00Z");
+  const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const add = (d, n) => iso(t(d) + n * DAY);
+  const dow = (d) => new Date(t(d)).getUTCDay();
+  const weekOf = (d) => { const x = new Date(t(d)); const day = x.getUTCDate(); const n = Math.ceil(day / 7); const last = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), day + 7)).getUTCMonth() !== x.getUTCMonth(); return { n, last }; };
+
+  /** Does the pattern (ignoring first and end) fall on this day? */
+  function fits(s, d) {
+    if (s.often === "weekly" || s.often === "biweekly") return s.days.includes(dow(d));
+    if (s.often === "monthly") {
+      if (dow(d) !== s.monthDay) return false;
+      const w = weekOf(d);
+      return s.monthWeek === "last" ? w.last : w.n === s.monthWeek;
+    }
+    return false;
+  }
+
+  /** Every session date, from the first, up to `max` or the end. */
+  function sessions(s, max = 60) {
+    if (s.often === "once") return s.first ? [s.first] : [];
+    if (s.often === "days") return s.first && s.last ? [s.first] : [];
+    if (!s.first || !fits(s, s.first)) return [];
+    const out = [];
+    const firstWeek = t(s.first) - dow(s.first) * DAY; // the Sunday of the first session's week
+    const cap = s.ends === "count" ? Math.min(s.count || 0, max) : max;
+    for (let i = 0, d = s.first; out.length < cap && i < 800; i++, d = add(s.first, i)) {
+      if (s.ends === "date" && s.until && d > s.until) break;
+      if (!fits(s, d)) continue;
+      if (s.often === "biweekly" && Math.floor((t(d) - firstWeek) / (7 * DAY)) % 2 !== 0) continue;
+      out.push(d);
+    }
+    return out;
+  }
+
+  /** The days a person may pick as the first session (or the end date), in a month. */
+  function pickable(s, year, month0, after) {
+    const out = [];
+    for (let day = 1; day <= 31; day++) {
+      const d = iso(Date.UTC(year, month0, day, 12));
+      if (+d.slice(5, 7) !== month0 + 1) break;
+      if (after && d < after) continue;
+      if (s.often === "once" || s.often === "days") out.push(d);
+      else if (fits(s, d)) out.push(d);
+    }
+    return out;
+  }
+
+  const fmtShort = (d) => `${SHORT[dow(d)]} ${MON[+d.slice(5, 7) - 1]} ${+d.slice(8, 10)}`;
+  const fmtLong = (d) => `${DOW[dow(d)]}, ${MONTH[+d.slice(5, 7) - 1]} ${+d.slice(8, 10)}`;
+  function fmtTime(hm) { if (!hm) return ""; let [h, m] = hm.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return `${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`; }
+  /** "7 to 7:45 PM", or "11:30 AM to 1 PM" when the half of the day changes. */
+  function timeRange(from, to) {
+    if (!from || !to) return "";
+    const a = fmtTime(from), b = fmtTime(to);
+    return a.slice(-2) === b.slice(-2) ? `${a.slice(0, -3)} to ${b}` : `${a} to ${b}`;
+  }
+  function length(from, to) { if (!from || !to) return null; const [a, b] = [from, to].map((x) => { const [h, m] = x.split(":").map(Number); return h * 60 + m; }); return b - a; }
+  function lengthWords(mins) { if (mins == null) return ""; if (mins <= 0) return "ends before it starts"; const h = Math.floor(mins / 60), m = mins % 60; return [h ? `${h} hour${h > 1 ? "s" : ""}` : "", m ? `${m} minutes` : ""].filter(Boolean).join(" "); }
+  function dayList(days) { const names = [...days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => DOW[d] + "s"); return names.length < 3 ? names.join(" and ") : names.slice(0, -1).join(", ") + " and " + names[names.length - 1]; }
+
+  /** The one sentence that says what a schedule is. */
+  function sentence(s) {
+    const time = timeRange(s.from, s.to);
+    if (s.often === "once") return s.first ? `${fmtLong(s.first)}${time ? ", " + time : ""}.` : "";
+    if (s.often === "days") return s.first && s.last ? `${fmtLong(s.first)}${s.from ? ", from " + fmtTime(s.from) : ""}, to ${fmtLong(s.last)}${s.to ? ", " + fmtTime(s.to) : ""}.` : "";
+    let pattern = "";
+    if (s.often === "weekly" && s.days.length) pattern = dayList(s.days);
+    if (s.often === "biweekly" && s.days.length) pattern = "Every other " + dayList(s.days).replace(/s( and |, |$)/g, "$1").replace(/s$/, "");
+    if (s.often === "monthly" && s.monthDay != null && s.monthWeek) pattern = `The ${s.monthWeek === "last" ? "last" : ORD[s.monthWeek]} ${DOW[s.monthDay]} of each month`;
+    return pattern ? `${pattern}${time ? ", " + time : ""}.` : "";
+  }
+
+  root.RimDates = { sessions, pickable, fits, fmtShort, fmtLong, fmtTime, timeRange, length, lengthWords, sentence, dow, add, DOW, MONTH, ORD };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+/* steps.js */
+/* The walk-through's questions (mockup only, 2026-10-28).
+   One question per step, in the order a person decides. Each step says
+   which section it belongs to, when it applies, what it asks, how its
+   answer reads in the trail, and what it needs before Continue.
+   Every field the editor sets today has a home here (CONCEPT.md, "Where
+   every field went"). */
+(function () {
+  const D = window.RimDates;
+  const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const online = (s) => s.where === "online" || s.where === "both";
+  const inPerson = (s) => s.where === "inperson" || s.where === "both";
+  const repeats = (s) => ["weekly", "biweekly", "monthly"].includes(s.often);
+  const registers = (s) => s.join === "register" || s.join === "both";
+  const canDecide = () => window.RimMock.role === "registrar";
+
+  const SECTIONS = [
+    { id: "about", name: "About" },
+    { id: "when", name: "When and where" },
+    { id: "teams", name: "Teachers and teams" },
+    { id: "join", name: "How people join" },
+    { id: "tell", name: "Messages to those who register" },
+    { id: "dana", name: "Dana" },
+    { id: "appears", name: "Where it appears" },
+  ];
+
+  /* ── small builders ── */
+  function choice(name, value, current, title, line, extra = "") {
+    return `<label class="ps-choice"><input type="radio" name="${name}" value="${esc(value)}" ${current === value ? "checked" : ""} ${extra}><span class="ps-choice__text"><strong>${title}</strong>${line ? `<span>${line}</span>` : ""}</span></label>`;
+  }
+  function check(key, on, title, line, extra = "") {
+    return `<label class="ps-check"><input type="checkbox" data-k="${key}" ${on ? "checked" : ""} ${extra}><span><strong style="font-weight:600;color:var(--rim-heading)">${title}</strong>${line ? `<br><span class="ps-field__hint">${line}</span>` : ""}</span></label>`;
+  }
+  function text(key, value, label, hint, opts = {}) {
+    const tag = opts.area ? `<textarea data-k="${key}" id="f-${key}" ${opts.ph ? `placeholder="${esc(opts.ph)}"` : ""}>${esc(value)}</textarea>`
+      : `<input class="ps-input${opts.short ? " ps-input--short" : ""}" data-k="${key}" id="f-${key}" type="${opts.type || "text"}" value="${esc(value)}" ${opts.ph ? `placeholder="${esc(opts.ph)}"` : ""} ${opts.extra || ""}>`;
+    return `<div class="ps-field"><label class="ps-field__label" for="f-${key}">${label}</label>${hint ? `<p class="ps-field__hint">${hint}</p>` : ""}${tag}</div>`;
+  }
+  function timeSelect(key, value, label) {
+    const [h24, m] = (value || "19:00").split(":").map(Number);
+    const ap = h24 >= 12 ? "PM" : "AM", h = h24 % 12 || 12;
+    const hours = Array.from({ length: 12 }, (_, i) => i + 1).map((x) => `<option ${x === h ? "selected" : ""}>${x}</option>`).join("");
+    const mins = ["00", "15", "30", "45"].map((x) => `<option ${+x === m ? "selected" : ""}>${x}</option>`).join("");
+    return `<fieldset class="ps-field" style="border:0;padding:0;margin:0"><legend class="ps-field__label" style="padding:0;margin-bottom:6px">${label}</legend>
+      <div class="ps-row" data-time="${key}">
+        <select aria-label="${label}: hour" data-part="h" class="ps-input ps-input--short" style="width:auto">${hours}</select>
+        <select aria-label="${label}: minutes" data-part="m" class="ps-input ps-input--short" style="width:auto">${mins}</select>
+        <select aria-label="${label}: morning or afternoon" data-part="ap" class="ps-input ps-input--short" style="width:auto"><option ${ap === "AM" ? "selected" : ""}>AM</option><option ${ap === "PM" ? "selected" : ""}>PM</option></select>
+      </div></fieldset>`;
+  }
+  function result(s, label = "What you've set up") {
+    const sentence = D.sentence(s);
+    if (!sentence) return "";
+    const all = D.sessions(s, 400);
+    const shown = all.slice(0, 8);
+    let more = "";
+    const bounded = s.ends === "count" || s.ends === "date";
+    if (repeats(s)) {
+      if (s.ends === "never") more = "It goes on until someone sets an end.";
+      else if (!bounded) more = "Next, you'll say when it ends.";
+      else if (all.length > shown.length) more = `And ${all.length - shown.length} more, to ${D.fmtLong(all[all.length - 1])}.`;
+    }
+    const count = repeats(s) && bounded && all.length ? ` ${all.length} session${all.length === 1 ? "" : "s"}.` : "";
+    return `<div class="ps-result" aria-live="polite"><p class="ps-result__label">${label}</p><p class="ps-result__sentence">${esc(sentence)}${count}</p>
+      ${shown.length && (repeats(s) || s.often === "days") ? `<ul class="ps-result__dates">${s.often === "days" ? `<li>${D.fmtShort(s.first)} to ${D.fmtShort(s.last)}</li>` : shown.map((d) => `<li>${D.fmtShort(d)}</li>`).join("")}</ul>` : ""}
+      ${more ? `<p class="ps-result__more">${more}</p>` : ""}</div>`;
+  }
+  function note(n, look) { return n ? `<div class="ps-note${look ? " ps-note--look" : ""}" role="status">${n}</div>` : ""; }
+
+  /* The calendar: only the days it meets can be chosen. */
+  function calendar(s, key, after, label) {
+    const view = s._cal?.[key] || (s[key] || after || "2026-10-01").slice(0, 7);
+    const [y, mo] = view.split("-").map(Number);
+    const ok = new Set(D.pickable(s, y, mo - 1, after));
+    const first = new Date(Date.UTC(y, mo - 1, 1, 12)).getUTCDay();
+    const daysIn = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+    let cells = "";
+    for (let i = 0; i < first; i++) cells += "<span></span>";
+    for (let d = 1; d <= daysIn; d++) {
+      const day = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const can = ok.has(day);
+      cells += can
+        ? `<button type="button" class="ps-cal__day ps-cal__day--ok${s[key] === day ? " ps-cal__day--on" : ""}" data-pick="${key}" data-day="${day}" aria-pressed="${s[key] === day}" aria-label="${D.fmtLong(day)}">${d}</button>`
+        : `<button type="button" class="ps-cal__day" disabled aria-label="${D.fmtLong(day)}, not a day it meets">${d}</button>`;
+    }
+    const why = repeats(s) ? `Only the days it meets can be chosen: ${esc(D.sentence({ ...s, from: null, to: null }).replace(/\.$/, ""))}.` : "";
+    return `<div class="ps-field"><span class="ps-field__label">${label}</span>
+      <div class="ps-cal"><div class="ps-cal__head"><button type="button" class="ps-cal__nav" data-cal="${key}" data-dir="-1" aria-label="Previous month">&larr;</button><strong>${D.MONTH[mo - 1]} ${y}</strong><button type="button" class="ps-cal__nav" data-cal="${key}" data-dir="1" aria-label="Next month">&rarr;</button></div>
+      <div class="ps-cal__grid">${["S", "M", "T", "W", "T", "F", "S"].map((x) => `<span class="ps-cal__dow" aria-hidden="true">${x}</span>`).join("")}${cells}</div>
+      ${why ? `<p class="ps-cal__foot">${why}</p>` : ""}</div></div>`;
+  }
+
+  const TODAY = "2026-10-28"; /* the mockup's today */
+  const TEACHERS = ["Jesse Foy", "Maria Sprecher", "Amy Gardner", "Sara Lindqvist"];
+  const DOW_BTN = [1, 2, 3, 4, 5, 6, 0];
+
+  /* Each section of Programs & Events, in one order everywhere it shows:
+     programs shown first (in the order chosen), then programs that go on by
+     their first day of the week (Monday first) and time, then programs with
+     an end by their first session. No numbers to manage. */
+  const SECTION_PROGRAMS = {
+    FOUNDATIONS: [{ name: "Taking CARE: Foundations of Meditation and Mindful Living", when: "Begins November 4", key: "1|2026-11-04" }],
+    ONGOING: [{ name: "Awakening The Heart", when: "Mondays", key: "0|1|09:30" }, { name: "The Art of Meditation", when: "Tuesdays", key: "0|2|09:30" }, { name: "Essential Dharma Study", when: "Thursdays", key: "0|4|09:30" }, { name: "Meditation and Dharma Talk", when: "Saturdays", key: "0|6|09:30" }],
+    IMMERSION: [{ name: "Awakening to the Beauty of This Moment", when: "November 13 to 15", key: "1|2026-11-13" }],
+    GROUP: [{ name: "Qigong at RIM", when: "Wednesdays", key: "0|3|10:00" }, { name: "Our Hearts Were Made for This", when: "Sundays", key: "0|7|09:00" }, { name: "Recovery Dharma", when: "Sundays", key: "0|7|09:30" }, { name: "Nature Meditation KM Group", when: "The last Sunday of each month", key: "0|7|09:31" }],
+    EVENT: [{ name: "RIM's End of Year Community Gathering", when: "December 5", key: "1|2026-12-05" }],
+  };
+  function orderKey(s) {
+    if (repeats(s) && s.ends === "never") { const d = s.often === "monthly" ? s.monthDay : [...s.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7))[0]; return `0|${d === 0 ? 7 : d}|${s.from}`; }
+    return `1|${s.first || "9999"}`;
+  }
+  function sectionPreview(s) {
+    const list = (SECTION_PROGRAMS[s.category] || []).map((p) => ({ ...p }));
+    const me = { name: s.name || "This program", when: (D.sentence({ ...s, from: null, to: null }).replace(/\.$/, "") || "") + (repeats(s) && s.ends !== "never" && s.first ? `, from ${D.MONTH[+s.first.slice(5, 7) - 1]} ${+s.first.slice(8, 10)}` : ""), key: orderKey(s), me: true, first: s.pinFirst };
+    const firsts = [me].filter((p) => p.first);
+    const rest = [...list, ...(me.first ? [] : [me])].sort((a, b) => (a.key < b.key ? -1 : 1));
+    const all = [...firsts, ...rest];
+    const sec = STEPS_NAME[s.category] || "its section";
+    return `<div style="margin:4px 0 8px 30px" class="ps-result"><p class="ps-result__label">It'll be listed under ${esc(sec)}, here:</p>
+      <ol style="margin:6px 0 0;padding-left:22px">${all.map((p) => `<li style="padding:3px 0${p.me ? ";font-weight:600;color:var(--rim-blue)" : ""}">${esc(p.name)}${p.when ? ` <span class="ps-field__hint" style="display:inline">· ${esc(p.when)}</span>` : ""}${p.first ? ' <span class="ps-field__hint" style="display:inline">(shown first)</span>' : ""}</li>`).join("")}</ol>
+      ${check("pinFirst", s.pinFirst, "Show it first in its section", "Otherwise it takes its place by when it meets.")}</div>`;
+  }
+  const STEPS_NAME = { FOUNDATIONS: "Foundations", ONGOING: "Ongoing Learning & Practice", IMMERSION: "Immersion", GROUP: "Community Groups", EVENT: "Special Events" };
+
+  const STEPS = [
+    /* ═══ About ═══ */
+    { id: "name", sec: "about", q: () => "What is it called?",
+      help: () => "The name appears on the public site, on My Home and in every email about it.",
+      body: (s) => text("name", s.name, "Name", "", { ph: "Mindful Photography" }) +
+        `<p class="ps-field__hint">Its address: rim-next.vercel.app/programs/<strong>${esc(s.slug || "…")}</strong>. It's made from the name and stays the same once people register.</p>`,
+      need: (s) => (s.name.trim() ? null : "Give it a name to go on."),
+      answer: (s) => s.name },
+    { id: "line", sec: "about", q: () => "Say what it is, in one line.",
+      help: () => "This line sits under the name on Programs & Events.",
+      body: (s) => text("tagline", s.tagline, "One line", "", { ph: "Seeing freshly through the lens" }),
+      optional: true, answer: (s) => s.tagline || "No line yet" },
+    { id: "describe", sec: "about", q: () => "Tell people about it.",
+      help: () => "This is the program's page. Write for someone who has never been to RIM.",
+      body: (s) => text("description", s.description, "Description", "", { area: true, ph: "What happens, who it's for, what someone will take away." }) +
+        `<div class="ps-field"><span class="ps-field__label">A picture, if you have one</span><p class="ps-field__hint">It sits at the top of the page. A wide one works best.</p><div class="ps-row"><button type="button" class="app-act">Choose a picture</button><span class="mk-sample">${s.image ? "lens-on-leaves.jpg" : "No picture yet"}</span></div></div>`,
+      answer: (s) => (s.description.trim() ? "Description written" : "No description yet"),
+      look: (s) => (s.description.trim() ? null : "Without a description the program's page has nothing to read. You can come back to it before you publish.") },
+    { id: "extras", sec: "about", optional: true, q: () => "Anything more for its page?",
+      help: () => "All of this is optional. Leave it empty and the page opens straight onto the description.",
+      body: (s) => text("quote", s.quote, "A short quote at the top", "", { ph: "To see is to forget the name of the thing one sees." }) +
+        text("quoteSource", s.quoteSource, "Who said it", s.quote ? "" : "Add the quote first.", { extra: s.quote ? "" : "disabled" }) +
+        text("notes", s.notes, "Notes for the page", "Scheduling context, accessibility, background.", { area: true }),
+      answer: (s) => [s.quote && "A quote", s.notes && "Notes"].filter(Boolean).join(" and ") || "Nothing more" },
+
+    /* ═══ When and where ═══ */
+    { id: "where", sec: "when", q: () => "Where does it meet?",
+      body: (s) => `<div class="ps-choices">${choice("where", "inperson", s.where, "In person", "At RIM or another place.")}${choice("where", "online", s.where, "Online", "People join from My Home or its page.")}${choice("where", "both", s.where, "Both", "In person, and online at the same time.")}</div>`,
+      need: (s) => (s.where ? null : "Choose where it meets."),
+      answer: (s) => ({ inperson: "In person", online: "Online", both: "In person and online" }[s.where]) },
+    { id: "place", sec: "when", applies: inPerson, q: () => "Where, in person?",
+      body: (s) => `<div class="ps-choices">${choice("venue", "rim", s.venue, "At RIM", "The center's address goes on the page and in emails.")}${choice("venue", "other", s.venue, "Somewhere else", "")}</div>` +
+        (s.venue === "other" ? text("placeText", s.placeText, "The place and its address", "Shown on the page and in the confirmation email.") + text("placeLink", s.placeLink, "A map link, if you have one", "It shows as “Map and directions” in the email.", { ph: "https://…" }) : ""),
+      need: (s) => (!s.venue ? "Choose the place." : s.venue === "other" && !s.placeText.trim() ? "Write the place and its address." : null),
+      answer: (s) => (s.venue === "rim" ? "At RIM" : s.placeText || "Somewhere else") },
+    { id: "room", sec: "when", applies: online, q: () => "Which online room?",
+      body: (s) => `<div class="ps-choices">${choice("room", "rim", s.room, "RIM's Zoom", "RIM opens a meeting for each session. Most programs use this.")}${choice("room", "outside", s.room, "Someone else's meeting", "Like Recovery Dharma's own room. People still join through RIM, at session times.")}</div>` +
+        (s.room === "outside" ? text("outsideUrl", s.outsideUrl, "The meeting link", "Paste the whole link, passcode and all.", { ph: "https://us06web.zoom.us/j/…" }) : "") +
+        (s.room === "rim" ? check("record", s.record, "Record the sessions", "Audio only, for RIM's use. People see Zoom's recording mark.") : ""),
+      need: (s) => (!s.room ? "Choose the room." : s.room === "outside" && !/^https:\/\/\S+$/.test(s.outsideUrl.trim()) ? "Paste the meeting link. It starts with https://." : null),
+      answer: (s) => (s.room === "rim" ? "RIM's Zoom" + (s.record ? ", recorded" : "") : "Someone else's meeting") },
+    { id: "often", sec: "when", q: () => "How often does it meet?",
+      body: (s) => `<div class="ps-choices">${choice("often", "once", s.often, "Once", "One day.")}${choice("often", "days", s.often, "Several days in a row", "A retreat or a weekend.")}${choice("often", "weekly", s.often, "Every week", "On one day or more.")}${choice("often", "biweekly", s.often, "Every other week", "")}${choice("often", "monthly", s.often, "Once a month", "Like the last Sunday of each month.")}</div>`,
+      need: (s) => (s.often ? null : "Choose how often it meets."),
+      answer: (s) => ({ once: "Once", days: "Several days in a row", weekly: "Every week", biweekly: "Every other week", monthly: "Once a month" }[s.often]) },
+    { id: "days", sec: "when", applies: (s) => repeats(s), q: (s) => (s.often === "monthly" ? "Which day of the month?" : "On which days?"),
+      body: (s) => s.often === "monthly"
+        ? `<div class="ps-field"><span class="ps-field__label">Which one</span><div class="ps-days" style="grid-template-columns:repeat(5,minmax(0,1fr))">${[1, 2, 3, 4, "last"].map((w) => `<label class="ps-day"><input type="radio" name="monthWeek" value="${w}" ${String(s.monthWeek) === String(w) ? "checked" : ""}>${w === "last" ? "Last" : D.ORD[w]}</label>`).join("")}</div></div>
+           <div class="ps-field"><span class="ps-field__label">Which day</span><div class="ps-days">${DOW_BTN.map((d) => `<label class="ps-day"><input type="radio" name="monthDay" value="${d}" ${s.monthDay === d ? "checked" : ""}>${D.DOW[d].slice(0, 3)}</label>`).join("")}</div></div>`
+        : `<div class="ps-days" role="group" aria-label="Days it meets">${DOW_BTN.map((d) => `<label class="ps-day"><input type="checkbox" data-day="${d}" ${s.days.includes(d) ? "checked" : ""}>${D.DOW[d].slice(0, 3)}</label>`).join("")}</div>`,
+      need: (s) => (s.often === "monthly" ? (s.monthWeek && s.monthDay != null ? null : "Choose which one and which day.") : s.days.length ? null : "Choose at least one day."),
+      answer: (s) => D.sentence({ ...s, from: null, to: null }).replace(/\.$/, "") },
+    { id: "time", sec: "when", q: (s) => (s.often === "days" ? "What time does it begin and end?" : "What time?"),
+      body: (s) => `<div class="ps-row">${timeSelect("from", s.from, s.often === "days" ? "Begins on the first day at" : "From")}${timeSelect("to", s.to, s.often === "days" ? "Ends on the last day at" : "To")}</div>` +
+        (s.often !== "days" ? `<p class="ps-field__hint" aria-live="polite">That's <strong>${D.lengthWords(D.length(s.from, s.to))}</strong>.</p>` : "") +
+        (s.often !== "days" && D.length(s.from, s.to) > 240 ? note(`<p><strong>That's ${D.lengthWords(D.length(s.from, s.to))}.</strong> Is that right? If you meant ${D.fmtTime(s.from).replace("AM", "PM")}, change AM to PM.</p>`, true) : ""),
+      need: (s) => (s.often !== "days" && D.length(s.from, s.to) <= 0 ? "It ends before it begins. Check the times, AM and PM too." : null),
+      answer: (s) => D.timeRange(s.from, s.to) },
+    { id: "first", sec: "when", q: (s) => ({ once: "Which day?", days: "Which days?" }[s.often] || "When is the first session?"),
+      body: (s) => (s.often === "days"
+        ? `<div class="ps-row" style="align-items:flex-start">${calendar(s, "first", TODAY, "First day")}${s.first ? calendar(s, "last", D.add(s.first, 1), "Last day") : ""}</div>`
+        : calendar(s, "first", TODAY, s.often === "once" ? "The day" : "First session")) + result(s),
+      need: (s) => (!s.first ? "Choose the day." : s.often === "days" && !s.last ? "Choose the last day." : null),
+      answer: (s) => (!s.first ? "Not chosen yet" : s.often === "days" ? (s.last ? `${D.fmtShort(s.first)} to ${D.fmtShort(s.last)}` : `From ${D.fmtShort(s.first)}`) : (repeats(s) ? "Starting " : "") + D.fmtLong(s.first)) },
+    { id: "ends", sec: "when", applies: repeats, q: () => "When does it end?",
+      body: (s) => `<div class="ps-choices">${choice("ends", "never", s.ends, "It goes on", "No end for now. You can set one later.")}${choice("ends", "count", s.ends, "After a number of sessions", "")}${choice("ends", "date", s.ends, "On a date", "")}</div>` +
+        (s.ends === "count" ? text("count", s.count, "How many sessions", "", { type: "number", short: true, extra: 'min="1" max="200" inputmode="numeric"' }) : "") +
+        (s.ends === "date" ? calendar(s, "until", s.first, "Last session") : "") + result(s),
+      need: (s) => (!s.ends ? "Choose how it ends." : s.ends === "count" && !(+s.count >= 1) ? "How many sessions?" : s.ends === "date" && !s.until ? "Choose the last session." : null),
+      answer: (s) => { const n = D.sessions(s, 400); return s.ends === "never" ? "Goes on" : !n.length ? "Once the first session is chosen" : `${n.length} session${n.length === 1 ? "" : "s"}, to ${D.fmtShort(n[n.length - 1])}`; } },
+    { id: "daynote", sec: "when", optional: true, q: () => "A line for the day itself?",
+      help: () => "One quiet line shown with the session on My Home on the day. Leave it empty if there's nothing to say.",
+      body: (s) => text("dayNote", s.dayNote, "The line", "", { ph: "Held in noble silence before and during the session." }),
+      answer: (s) => s.dayNote || "No line" },
+
+    /* ═══ Teachers and teams ═══ */
+    { id: "teachers", sec: "teams", q: () => "Who teaches it?",
+      help: () => "Teachers can take host controls in Zoom if needed.",
+      body: (s) => `<div class="ps-field"><label class="ps-field__label" for="f-tsearch">Find a teacher</label><input class="ps-input" id="f-tsearch" placeholder="Type a name" data-k="_tq" value="${esc(s._tq || "")}"></div>
+        <div class="ps-choices ps-choices--two">${TEACHERS.filter((t) => !s._tq || t.toLowerCase().includes(s._tq.toLowerCase())).map((t) => `<label class="ps-choice"><input type="checkbox" data-teacher="${esc(t)}" ${s.teachers.includes(t) ? "checked" : ""}><span class="ps-choice__text"><strong>${t}</strong></span></label>`).join("")}</div>` +
+        check("noTeacher", s.noTeacher, "No teacher for this one", "A peer-led sit or a community group."),
+      need: (s) => (s.teachers.length || s.noTeacher ? null : "Choose a teacher, or tick “No teacher for this one”."),
+      answer: (s) => (s.teachers.length ? s.teachers.join(", ") : "No teacher") },
+    { id: "host", sec: "teams", applies: online, q: () => "Does a host run the online room?",
+      body: (s) => `<div class="ps-choices">${choice("host", "yes", s.host, "Yes, the Hosting Team", "They take each session and open the room.")}${choice("host", "peer", s.host, "Yes, the Peer-Led Silent Meditation team", "")}${choice("host", "none", s.host, "No host needed", "It's self-led. The room still opens at session times.")}</div>` +
+        note("<p>The team hears about it when you publish, not before.</p>"),
+      need: (s) => (s.host ? null : "Choose who hosts it."),
+      answer: (s) => ({ yes: "The Hosting Team hosts", peer: "Peer-Led hosts", none: "No host needed" }[s.host]) },
+    { id: "support", sec: "teams", applies: inPerson, optional: true, q: () => "Which teams help at each session?",
+      help: () => "Each team signs up for sessions in its own Scheduler.",
+      body: (s) => `<div class="ps-choices ps-choices--two"><label class="ps-choice"><input type="checkbox" data-team="greeters" ${s.support.includes("greeters") ? "checked" : ""}><span class="ps-choice__text"><strong>Greeter Team</strong><span>Welcomes people at the door</span></span></label><label class="ps-choice"><input type="checkbox" data-team="av" ${s.support.includes("av") ? "checked" : ""}><span class="ps-choice__text"><strong>Audio-Visual Team</strong><span>Sound and the room's camera</span></span></label></div>` + note("<p>Each team hears about it when you publish, not before.</p>"),
+      answer: (s) => (s.support.length ? s.support.map((t) => ({ greeters: "Greeters", av: "AV" }[t])).join(" and ") : "No other teams") },
+    { id: "prepare", sec: "teams", optional: true, q: () => "Does a team prepare for it?",
+      help: () => "Like the kitchen. They see how many are coming and the answers to their own questions. Never dana.",
+      body: (s) => canDecide()
+        ? check("kitchen", s.kitchen, "Kitchen Team", "") + (s.kitchen ? check("kitchenReach", s.kitchenReach, "They can reach people", "They see each person's email and phone.") : "")
+        : note("<p>The registration team chooses these, since a team that prepares sees who's coming.</p>"),
+      answer: (s) => (s.kitchen ? "The Kitchen Team prepares" + (s.kitchenReach ? " and can reach people" : "") : "No team prepares") },
+
+    /* ═══ How people join ═══ */
+    { id: "join", sec: "join", q: () => "How do people join?",
+      body: (s) => `<div class="ps-choices">${choice("join", "come", s.join, "They just come", "Anyone signed in may join, no sign-up. It's marked Drop-in on This Week.")}${choice("join", "register", s.join, "They register first", "Each person signs up and gets a place.")}${choice("join", "both", s.join, "Both", "People can register, and anyone signed in may also just come.")}</div>`,
+      need: (s) => (s.join ? null : "Choose how people join."),
+      answer: (s) => ({ come: "They just come", register: "They register first", both: "Register, or just come" }[s.join]) },
+    { id: "guests", sec: "join", applies: online, optional: true, q: () => "And people without a RIM account?",
+      body: (s) => `<div class="ps-choices">${choice("guests", "no", s.guests, "Only people with a RIM account", "")}${choice("guests", "link", s.guests, "Anyone with a guest link", "A link you share. It works only around session times.")}${s.room === "outside" ? choice("guests", "page", s.guests, "Anyone, from the program's page", registers(s) ? "Not while people register: the page shows Register instead." : "A Join button for anyone.", registers(s) ? "disabled" : "") : ""}</div>`,
+      answer: (s) => ({ no: "Members only", link: "Guests with the link", page: "Anyone, from the page" }[s.guests] || "Members only") },
+    { id: "opens", sec: "join", applies: registers, q: () => "When can people register?",
+      body: (s) => `<div class="ps-choices">${choice("opens", "publish", s.opens, "As soon as it's published", "")}${choice("opens", "date", s.opens, "From a date", "The page says when registration opens.")}</div>` +
+        (s.opens === "date" ? calendar({ ...s, often: "once" }, "opensOn", "2026-10-28", "Registration opens on") : "") +
+        `<div class="ps-choices" style="margin-top:var(--space-3)">${choice("closes", "begins", s.closes, "Until it begins", "")}${choice("closes", "date", s.closes, "Until a date", "")}</div>` +
+        (s.closes === "date" ? calendar({ ...s, often: "once" }, "closesOn", s.opensOn || "2026-10-28", "The last day to register") : ""),
+      need: (s) => (s.opens === "date" && !s.opensOn ? "Choose the day registration opens." : s.closes === "date" && !s.closesOn ? "Choose the last day to register." : null),
+      answer: (s) => `${s.opens === "date" && s.opensOn ? "Opens " + D.fmtShort(s.opensOn) : "Opens when published"}, ${s.closes === "date" && s.closesOn ? "closes " + D.fmtShort(s.closesOn) : "until it begins"}` },
+    { id: "places", sec: "join", applies: registers, q: () => "How many places?",
+      body: (s) => `<div class="ps-choices">${choice("limit", "none", s.limit, "No limit", "")}${choice("limit", "some", s.limit, "A set number", "Once it's full, people join a waiting list.")}</div>` +
+        (s.limit === "some" ? text("cap", s.cap, "Places", "", { type: "number", short: true, extra: 'min="1" inputmode="numeric"' }) : ""),
+      need: (s) => (s.limit === "some" && !(+s.cap >= 1) ? "How many places?" : null),
+      answer: (s) => (s.limit === "some" ? `${s.cap} places` : "No limit") },
+    { id: "questions", sec: "join", applies: registers, optional: true, q: () => "What would you like to ask them?",
+      help: () => "Each question goes to whoever asks it, and always to the registration team.",
+      body: (s) => `<ul class="ps-qs">${s.questions.map((q, i) => `<li class="ps-q"><div class="ps-q__top"><span class="ps-q__label">${esc(q.label)}</span><button type="button" class="app-act" data-qdel="${i}">Remove</button></div><p class="ps-q__meta">${q.kind}${q.required ? ", needs an answer" : ""} · Asked by ${esc(q.by)}${canDecide() ? "" : " (the registration team chooses)"}</p></li>`).join("")}</ul>
+        <button type="button" class="app-act" data-qadd="1">+ Add a question</button>`,
+      answer: (s) => (s.questions.length ? `${s.questions.length} question${s.questions.length === 1 ? "" : "s"}` : "No questions") },
+
+    /* ═══ Messages to those who register ═══ */
+    { id: "confirm", sec: "tell", applies: registers, q: () => "What should the confirmation say?",
+      help: () => "It goes as soon as someone registers, with the day, the time and how to join. Add what to bring, how to prepare, or directions.",
+      body: (s) => text("confirmMsg", s.confirmMsg, "The confirmation", "", { area: true, ph: "Bring your camera or phone, and something to sit on." }),
+      optional: true, answer: (s) => (s.confirmMsg ? "Confirmation written" : "The confirmation, as it comes") },
+    { id: "reminder", sec: "tell", applies: registers, q: () => "When should the reminder go?",
+      body: (s) => `<div class="ps-choices">${choice("remind", "days", s.remind, `${s.remindDays || 2} days before the first session`, "In the morning, and to anyone who registers later.")}${choice("remind", "date", s.remind, "On a set date", "")}${choice("remind", "none", s.remind, "No reminder", "")}</div>` +
+        (s.remind === "days" ? text("remindDays", s.remindDays, "Days before", "", { type: "number", short: true, extra: 'min="1" max="60"' }) : "") +
+        (s.remind === "date" ? calendar({ ...s, often: "once" }, "remindOn", "2026-10-28", "Send it on") : "") +
+        (s.remind !== "none" ? text("remindMsg", s.remindMsg, "Anything to add to it", "", { area: true }) : ""),
+      need: (s) => (s.remind === "days" && !(+s.remindDays >= 1 && +s.remindDays <= 60) ? "Choose from 1 to 60 days." : s.remind === "date" && !s.remindOn ? "Choose the day." : null),
+      answer: (s) => ({ days: `${s.remindDays || 2} days before`, date: s.remindOn ? "On " + D.fmtShort(s.remindOn) : "On a date", none: "No reminder" }[s.remind]) },
+    { id: "after", sec: "tell", applies: (s) => registers(s) && !repeats(s), optional: true, q: () => "A note the day after it ends?",
+      body: (s) => `<div class="ps-choices">${choice("afterNote", "no", s.afterNote, "No note", "")}${choice("afterNote", "yes", s.afterNote, "Yes, send a note", "A thank-you, a reading, a word about what comes next.")}</div>` +
+        (s.afterNote === "yes" ? text("afterMsg", s.afterMsg, "The note", "", { area: true }) : ""),
+      need: (s) => (s.afterNote === "yes" && !s.afterMsg.trim() ? "Write the note, or choose No note." : null),
+      answer: (s) => (s.afterNote === "yes" ? "A note the day after" : "No note after") },
+
+    /* ═══ Dana ═══ */
+    { id: "dana", sec: "dana", q: () => "How is dana offered?",
+      help: () => "RIM's practice is voluntary dana.",
+      body: (s) => `<div class="ps-choices">${choice("dana", "none", s.dana, "No dana step", "")}${choice("dana", "voluntary", s.dana, "Dana invited", "People give what they choose. You can suggest an amount.")}${choice("dana", "base", s.dana, "A set amount, plus dana", "Where RIM pays for a place, like a retreat.")}${choice("dana", "fixed", s.dana, "A fixed amount", "Not RIM's usual practice.")}</div>` +
+        (s.dana === "voluntary" || s.dana === "base" ? text("suggest", s.suggest, "Suggested amount ($)", "", { type: "number", short: true }) : "") +
+        (s.dana === "base" ? text("base", s.base, "The set amount ($)", "", { type: "number", short: true }) : "") +
+        (s.dana === "fixed" ? text("fixed", s.fixed, "The amount ($)", "", { type: "number", short: true }) : ""),
+      need: (s) => (s.dana ? null : "Choose how dana is offered."),
+      answer: (s) => ({ none: "No dana step", voluntary: "Dana invited" + (s.suggest ? `, $${s.suggest} suggested` : ""), base: `$${s.base || "?"} plus dana`, fixed: `$${s.fixed || "?"}` }[s.dana]) },
+    { id: "danaWords", sec: "dana", applies: (s) => s.dana && s.dana !== "none", q: () => "What do people read when they give?",
+      body: (s) => `<div class="ps-field"><span class="ps-field__label">Start from</span><div class="ps-row">${["General support", "Reciprocity", "No one turned away"].map((t) => `<button type="button" class="app-act" data-tpl="${t}">${t}</button>`).join("")}</div></div>` +
+        text("danaMsg", s.danaMsg, "At the dana step", "", { area: true }) + text("danaNote", s.danaNote, "A short note on the program's page", "Near the Register button.", {}),
+      optional: true, answer: (s) => (s.danaMsg ? "Dana words written" : "No dana words") },
+
+    /* ═══ Where it appears ═══ */
+    { id: "category", sec: "appears", q: () => "Which of RIM's ways does it belong to?",
+      body: (s) => `<div class="ps-choices">${[
+        ["FOUNDATIONS", "Foundations", "Where people begin."], ["ONGOING", "Ongoing Learning & Practice", "Drop-ins and classes that go on."], ["IMMERSION", "Immersion", "Courses, days of mindfulness, retreats."],
+        ["GROUP", "Community Group", "Member-led groups."], ["EVENT", "Special Event", ""], ["SERVICE", "Service", "Internal, never listed."], ["PRIVATE", "Private", "Internal, never listed."],
+      ].map(([v, t, l]) => choice("category", v, s.category, t, l)).join("")}</div>`,
+      need: (s) => (s.category ? null : "Choose where it belongs. It's how it's listed."),
+      answer: (s) => ({ FOUNDATIONS: "Foundations", ONGOING: "Ongoing Learning & Practice", IMMERSION: "Immersion", GROUP: "Community Group", EVENT: "Special Event", SERVICE: "Service", PRIVATE: "Private" }[s.category]) },
+    { id: "kind", sec: "appears", q: () => "What kind of offering is it?",
+      help: () => "A label on its card. It doesn't decide who can join.",
+      body: (s) => `<div class="ps-choices ps-choices--two">${["Drop-in", "Class", "Course", "Workshop", "Day of mindfulness", "Retreat"].map((k) => choice("kind", k, s.kind, k, "")).join("")}</div>` +
+        (s.kind === "Drop-in" ? check("silent", s.silent, "A silent sit", "Listed under Silent meditation.") : "") +
+        check("volunteers", s.volunteers, "Hosted by volunteers", "Its card says so."),
+      need: (s) => (s.kind || !["FOUNDATIONS", "ONGOING", "IMMERSION"].includes(s.category) ? null : "Choose what kind it is. Foundations, Ongoing and Immersion each need one."),
+      answer: (s) => [s.kind || "No kind", s.silent && s.kind === "Drop-in" && "silent", s.volunteers && "hosted by volunteers"].filter(Boolean).join(", ") },
+    { id: "show", sec: "appears", q: () => "Where should people find it?",
+      body: (s) => {
+        const never = s.category === "PRIVATE" || s.category === "SERVICE";
+        return check("onList", s.onList && !never, "On Programs & Events", never ? "Private and Service programs are never listed." : "", never ? "disabled" : "") +
+        (s.onList && !never ? sectionPreview(s) : "") +
+        check("onWeek", s.onWeek, "On This Week", "In the weeks it meets, by day and time.") +
+        (online(s) ? check("onHome", s.onHome, "On My Home, on the days it meets", s.join === "come" ? "For every member, with Join." : "For the people registered, with Join.") +
+          (s.onHome ? `<p style="margin:0 0 0 30px"><button type="button" class="app-act" data-homefrom="1">${s.homeFrom ? "From " + D.fmtLong(s.homeFrom) + " · change" : "Only from a date…"}</button></p>` + (s._homeFromOpen ? calendar({ ...s, often: "once" }, "homeFrom", TODAY, "Show it on My Home from") : "") : "") : "") +
+        (!repeats(s) ? check("autoHide", s.autoHide, "Take it down once it's over", "It's archived the morning after.") : "") +
+        `<p class="ps-field__hint">Anyone with the link can always open its page.</p>`;
+      },
+      optional: true,
+      answer: (s) => [s.onList && "Programs & Events" + (s.pinFirst ? " (first in its section)" : ""), s.onWeek && "This Week", online(s) && s.onHome && "My Home" + (s.homeFrom ? " from " + D.fmtShort(s.homeFrom) : "")].filter(Boolean).join(", ") || "Only by its link" },
+  ];
+
+  window.RimSteps = { STEPS, SECTIONS, esc, result, repeats, registers, online, inPerson, note };
+})();
+
+</script>
+<script>
+/* app.js */
+/* The walk-through's engine (mockup only, 2026-10-28). */
+(function () {
+  const D = window.RimDates;
+  const { STEPS, SECTIONS, esc, result, repeats, registers, online, note } = window.RimSteps;
+  window.RimMock = { role: "registrar", state: () => s };
+  const app = document.getElementById("app");
+  const noteEl = document.getElementById("mk-note");
+
+  function blank() {
+    return {
+      name: "", slug: "", slugTouched: false, tagline: "", description: "", image: false, quote: "", quoteSource: "", notes: "",
+      where: null, venue: "rim", placeText: "", placeLink: "", room: "rim", outsideUrl: "", record: false,
+      often: null, days: [], monthWeek: null, monthDay: null, from: "19:00", to: "20:00", first: null, last: null, ends: null, count: "", until: null, dayNote: "",
+      teachers: [], noTeacher: false, host: null, support: [], kitchen: false, kitchenReach: false,
+      join: null, guests: "no", opens: "publish", opensOn: null, closes: "begins", closesOn: null, limit: "none", cap: "", questions: [],
+      confirmMsg: "", remind: "days", remindDays: "2", remindOn: null, remindMsg: "", afterNote: "no", afterMsg: "",
+      dana: null, suggest: "", base: "", fixed: "", danaMsg: "", danaNote: "",
+      category: null, kind: null, silent: false, volunteers: false, onList: true, onWeek: true, onHome: true, homeFrom: null, autoHide: true, pinFirst: false,
+      _cal: {}, _redo: {},
+    };
+  }
+  const Q = {
+    practice: { label: "Have you practiced meditation before?", kind: "A choice", required: true, by: "the teacher" },
+    toKnow: { label: "Is there anything I should know before we sit together?", kind: "A longer answer", required: false, by: "the teacher" },
+    arriving: { label: "Would anything make arriving easier? The stairs, a chair, a quiet arrival.", kind: "A short answer", required: false, by: "the registration team" },
+    meals: { label: "Any dietary needs?", kind: "A choice", required: true, by: "the Kitchen Team" },
+  };
+  /* Mindful Photography, as it would be set up here. */
+  function photo() {
+    return Object.assign(blank(), {
+      name: "Mindful Photography", slug: "mindful-photography", tagline: "Seeing freshly through the lens",
+      description: "Four Friday evenings of walking, looking and making pictures slowly.", image: true,
+      where: "online", room: "rim", often: "weekly", days: [5], from: "19:00", to: "19:45", first: "2026-10-30", ends: "count", count: "4",
+      teachers: ["Amy Gardner"], host: "yes", join: "register", limit: "some", cap: "12", questions: [Q.practice, Q.toKnow],
+      confirmMsg: "Bring your camera or phone. We begin with ten minutes of sitting.", remind: "days", remindDays: "2",
+      dana: "voluntary", suggest: "15", danaMsg: "Your dana makes this program possible.", category: "IMMERSION", kind: "Course",
+    });
+  }
+  const SHAPES = [
+    ["Drop-in", "Open entry, online: people come as they are, with no registration and no questions.", { where: "online", often: "once", join: "come", dana: "none", remind: "none" }],
+    ["Class", "Open entry, online, meeting every week, with no registration.", { where: "online", often: "weekly", join: "come", dana: "none", remind: "none" }],
+    ["Course", "Registration for the whole series, meeting every week, the teacher's two questions, dana invited, a reminder 2 days before.", { often: "weekly", join: "register", dana: "voluntary", questions: [Q.practice, Q.toKnow] }],
+    ["Workshop", "Registration, the teacher's two questions, dana invited, a reminder 2 days before.", { often: "once", join: "register", dana: "voluntary", questions: [Q.practice, Q.toKnow] }],
+    ["Day of mindfulness", "Registration, in person, questions about arriving and meals, dana invited, a reminder 2 days before.", { where: "inperson", often: "once", join: "register", dana: "voluntary", questions: [Q.arriving, Q.meals], kitchen: true }],
+    ["Retreat", "Registration, in person, the teacher's questions and questions about arriving and meals, dana invited, a reminder 2 days before.", { where: "inperson", often: "days", join: "register", dana: "voluntary", questions: [Q.practice, Q.toKnow, Q.arriving, Q.meals], kitchen: true }],
+  ];
+
+  let screen = "start";
+  let s = blank();
+  let mode = "new";          // "new", or "edit" (one section of a published program)
+  let editSec = null;
+  let original = null;       // the program before an edit
+  let at = "name";           // the current step's id
+  let seen = new Set();      // steps reached, so their answers show in the trail
+  let fromReview = false;
+  let problem = "";
+  let changeMsg = "";
+  let published = false;
+  let flash = "";
+
+  const live = () => STEPS.filter((st) => (!st.applies || st.applies(s)) && (mode === "new" || st.sec === editSec));
+  const step = () => live().find((st) => st.id === at) || live()[0];
+
+  /* ── Changing your mind: keep what still fits, ask again for what doesn't ── */
+  function reconcile(key) {
+    const msgs = [];
+    if (key === "name" && !s.slugTouched) s.slug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    if (key === "often") {
+      if (s.often === "monthly" && s.monthDay == null && s.days.length) { s.monthDay = s.days[0]; msgs.push(`It still meets on a ${D.DOW[s.monthDay]}. Choose which one of the month.`); }
+      if ((s.often === "weekly" || s.often === "biweekly") && !s.days.length && s.monthDay != null) s.days = [s.monthDay];
+      if (s.from && s.to) msgs.push("The time is kept.");
+    }
+    if (s.first && repeats(s) && s.days.length + (s.monthDay != null ? 1 : 0) && !D.fits(s, s.first) && (s.often !== "monthly" || s.monthWeek)) {
+      msgs.push(`The first session was ${D.fmtLong(s.first)}, which doesn't fit now, so you'll choose it again.`);
+      s._redo.first = `Was ${D.fmtShort(s.first)}. Choose it again.`; s.first = null;
+    }
+    if (s.until && (!s.first || s.until < s.first || (repeats(s) && !D.fits(s, s.until)))) {
+      s._redo.ends = `The last session was ${D.fmtShort(s.until)}. Choose it again.`; s.until = null;
+    }
+    if (s.often === "days" && s.last && s.first && s.last <= s.first) s.last = null;
+    if (s.first) delete s._redo.first;
+    if (s.until || s.ends !== "date") delete s._redo.ends;
+    return msgs;
+  }
+
+  /* ── The trail: the program taking shape ── */
+  function sofar() {
+    const steps = live();
+    const cur = step();
+    const curIdx = steps.indexOf(cur);
+    const secs = (mode === "new" ? SECTIONS : SECTIONS.filter((x) => x.id === editSec)).map((sec) => {
+      const mine = steps.filter((st) => st.sec === sec.id);
+      const answered = mine.filter((st) => seen.has(st.id) && st !== cur);
+      const done = mine.length && mine.every((st) => seen.has(st.id) && steps.indexOf(st) < curIdx);
+      const now = cur && cur.sec === sec.id;
+      const items = mine.filter((st) => seen.has(st.id)).map((st) => {
+        const redo = s._redo[st.id];
+        const label = st === cur ? "You're here" : redo ? redo : st.answer(s) || "";
+        return `<li><button type="button" class="ps-sofar__answer${st === cur ? " ps-sofar__answer--now" : ""}" data-goto="${st.id}" ${st === cur ? 'aria-current="step"' : ""}>${redo && st !== cur ? `<span class="ps-card__look">${esc(label)}</span>` : esc(label)}</button></li>`;
+      }).join("");
+      return `<li class="ps-sofar__sec${done ? " ps-sofar__sec--done" : ""}${now ? " ps-sofar__sec--now" : ""}">
+        <p class="ps-sofar__name"><span class="ps-sofar__mark" aria-hidden="true">${done ? '<i data-lucide="check"></i>' : ""}</span>${sec.name}</p>
+        ${items ? `<ul class="ps-sofar__answers">${items}</ul>` : ""}</li>`;
+    }).join("");
+    const done = steps.filter((st) => seen.has(st.id)).length;
+    return `<aside class="ps-sofar" aria-label="Your answers so far"><details ${window.innerWidth > 1000 ? "open" : ""}>
+      <summary class="ps-sofar__toggle"><span>Your answers so far</span><span class="mk-sample" style="font-style:normal">${done} of ${steps.length}</span></summary>
+      <p class="ps-sofar__title">${mode === "new" ? "Your answers so far" : "This section"}</p>
+      <ul class="ps-sofar__list">${secs}</ul>
+      <p class="ps-sofar__foot">Tap any answer to go back to it. Nothing is lost when you do.</p></details></aside>`;
+  }
+
+  /* ── The walk-through ── */
+  function walk() {
+    const steps = live();
+    const st = step();
+    at = st.id;
+    seen.add(st.id);
+    const secSteps = steps.filter((x) => x.sec === st.sec);
+    const sec = SECTIONS.find((x) => x.id === st.sec);
+    const idx = steps.indexOf(st);
+    const look = st.look && st.look(s);
+    const redo = s._redo[st.id];
+    const last = idx === steps.length - 1;
+    const primary = fromReview ? "Back to the review" : last ? (mode === "new" ? "Review it all" : "See what this changes") : "Continue";
+    const head = mode === "new"
+      ? `<a class="ps-head__back" href="#" data-screen="start">&larr; What are you offering?</a><h1>${esc(s.name || "A new program")}</h1>
+         <p class="ps-head__state"><strong>Draft</strong> · saved as you go. No one sees it, and no one is told, until you publish.</p>`
+      : `<a class="ps-head__back" href="#" data-screen="program">&larr; ${esc(s.name)}</a><h1>Change: ${esc(sec.name)}</h1>
+         <p class="ps-head__state">Nothing changes until you've seen what it does and said yes.</p>`;
+    app.innerHTML = `<div class="ps-head">${head}</div>
+      <div class="ps-grid">
+        <div>
+          <section class="ps-step" aria-labelledby="ps-q">
+            <p class="ps-step__where">${sec.name} · ${secSteps.indexOf(st) + 1} of ${secSteps.length}</p>
+            <h2 class="ps-step__q" id="ps-q" tabindex="-1">${st.q(s)}</h2>
+            ${st.help && st.help(s) ? `<p class="ps-step__help">${st.help(s)}</p>` : ""}
+            <div class="ps-step__body">
+              ${changeMsg ? note(`<p><strong>You changed this.</strong> ${esc(changeMsg)}</p>`) : ""}
+              ${redo ? note(`<p><strong>This needs choosing again.</strong> ${esc(redo)}</p>`, true) : ""}
+              ${st.body(s)}
+              ${look ? note(`<p>${look}</p>`, true) : ""}
+            </div>
+            ${problem ? `<p class="mk-error" role="alert" style="margin:var(--space-3) 0 0;color:var(--color-error);font-weight:600">${esc(problem)}</p>` : ""}
+            <div class="ps-step__nav">
+              <button type="button" class="pe-btn pe-btn--primary" data-nav="next">${primary}</button>
+              ${idx > 0 && !fromReview ? `<button type="button" class="app-back" data-nav="back">&larr; Back</button>` : ""}
+              ${st.optional && !fromReview && !last ? `<button type="button" class="app-act ps-skip" data-nav="skip">Skip this for now</button>` : ""}
+            </div>
+          </section>
+        </div>
+        ${sofar()}
+      </div>`;
+    window.lucide && lucide.createIcons();
+  }
+
+  /* ── Review, and the program's own page: the same sentences ── */
+  function sentences(secId) {
+    const lines = [];
+    const steps = STEPS.filter((st) => st.sec === secId && (!st.applies || st.applies(s)));
+    if (secId === "when") {
+      const where = { inperson: "In person", online: "Online", both: "In person and online" }[s.where] || "";
+      const place = s.where !== "online" ? (s.venue === "rim" ? " at RIM" : s.placeText ? `, ${s.placeText}` : "") : "";
+      const room = online(s) ? (s.room === "rim" ? ", on RIM's Zoom" : ", in someone else's meeting") : "";
+      lines.push(`<p>${esc(where + place + room)}.</p>`);
+      lines.push(`<p><strong>${esc(D.sentence(s))}</strong>${repeats(s) ? (s.ends === "never" ? " It goes on." : ` ${D.sessions(s, 400).length} sessions.`) : ""}</p>`);
+      const ds = D.sessions(s, 400);
+      if (repeats(s) && ds.length) lines.push(`<ul class="ps-result__dates">${ds.slice(0, 8).map((d) => `<li>${D.fmtShort(d)}</li>`).join("")}${ds.length > 8 ? `<li>and ${ds.length - 8} more</li>` : ""}</ul>`);
+      if (s.dayNote) lines.push(`<p>On the day: “${esc(s.dayNote)}”</p>`);
+      return lines.join("");
+    }
+    for (const st of steps) {
+      const need = st.need && st.need(s);
+      const look = st.look && st.look(s);
+      if (need) lines.push(`<p class="ps-card__look">${esc(need)}</p>`);
+      else if (look) lines.push(`<p class="ps-card__look">${esc(look)}</p>`);
+      else lines.push(`<p>${esc(SAYS[st.id] ? SAYS[st.id](s) : st.answer(s) + ".")}</p>`);
+    }
+    return lines.join("");
+  }
+  /* The review says each answer as a sentence a person would say. */
+  const SAYS = {
+    name: (s) => `It's called ${s.name}.`,
+    line: (s) => (s.tagline ? `Its line: “${s.tagline}”` : "It has no one-line description yet."),
+    describe: (s) => `The description is written${s.image ? ", with a picture" : ""}.`,
+    extras: (s) => (s.quote || s.notes ? `${[s.quote && "A quote", s.notes && "notes"].filter(Boolean).join(" and ")} on its page.` : "No quote or notes on its page."),
+    teachers: (s) => (s.teachers.length ? `Taught by ${s.teachers.join(" and ")}.` : "No teacher: it's peer-led."),
+    host: (s) => ({ yes: "The Hosting Team hosts each session.", peer: "The Peer-Led team hosts each session.", none: "No host: it's self-led." }[s.host]),
+    support: (s) => (s.support.length ? `${s.support.map((t) => ({ greeters: "The Greeter Team", av: "The Audio-Visual Team" }[t])).join(" and ")} help at each session.` : "No other team helps at sessions."),
+    prepare: (s) => (s.kitchen ? `The Kitchen Team prepares${s.kitchenReach ? ", and can reach people" : ""}.` : "No team prepares for it."),
+    join: (s) => ({ come: "People just come: anyone signed in may join, no sign-up.", register: "People register first.", both: "People can register, and anyone signed in may also just come." }[s.join]),
+    guests: (s) => ({ no: "Only people with a RIM account can join.", link: "Guests can join with the guest link, around session times.", page: "Anyone can join from the program's page." }[s.guests || "no"]),
+    opens: (s) => `Registration opens ${s.opens === "date" && s.opensOn ? "on " + D.fmtLong(s.opensOn) : "as soon as it's published"}, and stays open ${s.closes === "date" && s.closesOn ? "through " + D.fmtLong(s.closesOn) : "until it begins"}.`,
+    places: (s) => (s.limit === "some" ? `${s.cap} places, then a waiting list.` : "No limit on places."),
+    questions: (s) => (s.questions.length ? `${s.questions.length} question${s.questions.length > 1 ? "s" : ""} on the form: ${s.questions.map((q) => `“${q.label}” (asked by ${q.by})`).join("; ")}.` : "No questions on the form."),
+    confirm: (s) => (s.confirmMsg ? `The confirmation adds: “${s.confirmMsg}”` : "The confirmation has the day, the time and how to join."),
+    reminder: (s) => ({ days: `A reminder goes ${s.remindDays || 2} days before the first session.`, date: `A reminder goes on ${s.remindOn ? D.fmtLong(s.remindOn) : "a date"}.`, none: "No reminder." }[s.remind]),
+    after: (s) => (s.afterNote === "yes" ? "A note goes the day after it ends." : "No note after."),
+    dana: (s) => ({ none: "There's no dana step.", voluntary: `Dana is invited${s.suggest ? `, with $${s.suggest} suggested` : ""}.`, base: `$${s.base || "?"}, plus dana as people choose.`, fixed: `A fixed $${s.fixed || "?"}.` }[s.dana]),
+    danaWords: (s) => (s.danaMsg ? `At the dana step: “${s.danaMsg}”` : "No words at the dana step yet."),
+    category: (s) => (["PRIVATE", "SERVICE"].includes(s.category) ? `It's ${s.category === "PRIVATE" ? "Private" : "Service"}, so it's never listed.` : `It belongs to ${STEPS.find((x) => x.id === "category").answer(s)}.`),
+    kind: (s) => `It's a ${(s.kind || "program").toLowerCase()}${s.silent && s.kind === "Drop-in" ? ", a silent sit" : ""}${s.volunteers ? ", hosted by volunteers" : ""}.`,
+    show: (s) => { const w = [s.onList && "Programs & Events", s.onWeek && "This Week", online(s) && s.onHome && "My Home on the days it meets"].filter(Boolean); return (w.length ? `People find it on ${w.join(", ")}.` : "Only people with its link can find it.") + (s.pinFirst ? " It's shown first in its section." : ""); },
+  };
+  function missing() {
+    return live().filter((st) => st.need && st.need(s)).map((st) => ({ st, msg: st.need(s) }));
+  }
+  function effects() {
+    const out = [];
+    const listed = s.onList && !["PRIVATE", "SERVICE"].includes(s.category);
+    out.push(["eye", listed ? `It appears on Programs & Events under ${STEPS.find((x) => x.id === "category").answer(s)}${s.onWeek ? ", and on This Week in the weeks it meets" : ""}.` : "It isn't listed. Anyone with its link can open its page."]);
+    if (registers(s)) out.push(["user-check", s.opens === "date" && s.opensOn ? `Registration opens on ${D.fmtLong(s.opensOn)}.` : "Registration opens."]);
+    else out.push(["door-open", "Anyone signed in may simply come."]);
+    if (online(s) && s.host !== "none") out.push(["calendar-check", `${s.host === "peer" ? "The Peer-Led team" : "The Hosting Team"} is told it needs a host, and its sessions appear in their Scheduler.`]);
+    if (s.support.length) out.push(["users", `${s.support.map((t) => ({ greeters: "The Greeter Team", av: "The Audio-Visual Team" }[t])).join(" and ")} ${s.support.length > 1 ? "are" : "is"} told, and can sign up for sessions.`]);
+    if (online(s) && s.room === "rim") out.push(["video", "A Zoom meeting is made for each session, just before it opens."]);
+    return out;
+  }
+  function review() {
+    const miss = missing();
+    app.innerHTML = `<div class="ps-head"><a class="ps-head__back" href="#" data-back-walk="1">&larr; Back to the questions</a><h1>${esc(s.name || "A new program")}</h1>
+      <p class="ps-head__state"><strong>Draft</strong> · here's everything, as people will see it. Change anything before you publish.</p></div>
+      <div class="ps-review">
+        ${SECTIONS.map((sec) => `<section class="ps-card"><div class="ps-card__head"><h2>${sec.name}</h2><button type="button" class="ps-card__change" data-change="${sec.id}" aria-label="Change ${sec.name}">Change</button></div><div class="ps-card__body">${sentences(sec.id)}</div></section>`).join("")}
+        <section class="ps-card"><div class="ps-card__head"><h2>When you publish</h2></div><div class="ps-card__body">
+          ${miss.length ? note(`<p><strong>Before it can be published:</strong></p>${miss.map((m) => `<p><button type="button" class="ps-inline-btn" data-goto-new="${m.st.id}">${esc(m.msg)}</button></p>`).join("")}`, true) : ""}
+          <ul class="ps-effects">${effects().map(([i, t]) => `<li><i data-lucide="${i}"></i><span>${esc(t)}</span></li>`).join("")}</ul>
+          <p class="mk-sample" style="margin-top:12px;font-style:normal">Until then it's a draft: nothing above has happened yet.</p>
+          <div class="ps-publish" style="margin-top:var(--space-3)"><button type="button" class="pe-btn pe-btn--primary" data-publish="1" ${miss.length ? "disabled aria-disabled=\"true\"" : ""}>Publish</button><button type="button" class="app-act" data-draft="1">Keep it as a draft</button></div>
+          ${flash ? `<p class="mk-saved" role="status" style="margin-top:12px;color:var(--color-success);font-weight:600">${esc(flash)}</p>` : ""}
+        </div></section>
+      </div>`;
+    flash = "";
+    window.lucide && lucide.createIcons();
+  }
+  function programPage() {
+    if (!s.name) s = photo();
+    app.innerHTML = `<div class="ps-head"><a class="ps-head__back" href="#">&larr; Programs</a><h1>${esc(s.name)}</h1>
+      <p class="ps-head__state"><strong>Published</strong> · on Programs & Events and This Week · 1 person registered</p></div>
+      ${flash ? `<div class="ps-done" role="status"><p><strong>${esc(flash)}</strong></p><p>Each part below has its own Change. Nothing changes until you've seen what it does.</p></div>` : ""}
+      <div class="ps-row" style="margin-bottom:var(--space-3)"><a class="app-act" href="#">View its page</a><a class="app-act" href="#">People</a><a class="app-act" href="#">Post a notice</a><a class="app-act" href="#">Archive</a></div>
+      <div class="ps-review">${SECTIONS.map((sec) => `<section class="ps-card"><div class="ps-card__head"><h2>${sec.name}</h2><button type="button" class="ps-card__change" data-edit="${sec.id}" aria-label="Change ${sec.name}">Change</button></div><div class="ps-card__body">${sentences(sec.id)}</div></section>`).join("")}</div>`;
+    flash = "";
+    window.lucide && lucide.createIcons();
+  }
+
+  /* ── What a change does, before it's saved ── */
+  function editConfirm() {
+    const was = D.sessions(original, 400), now = D.sessions(s, 400);
+    const today = "2026-10-28";
+    const gone = was.filter((d) => d >= today && !now.includes(d));
+    const added = now.filter((d) => d >= today && !was.includes(d));
+    const timeChanged = original.from !== s.from || original.to !== s.to;
+    const placeChanged = original.where !== s.where || original.venue !== s.venue || original.placeText !== s.placeText;
+    const hosting = ["2026-11-06", "2026-11-13"].filter((d) => gone.includes(d));
+    const rotationEnds = !D.fits(s, "2026-11-20") || !now.length;
+    const items = [];
+    if (editSec === "when") {
+      if (!gone.length && !added.length && !timeChanged && !placeChanged) items.push(["check", "Nothing about when or where changes."]);
+      if (gone.length) items.push(["calendar-x", `${gone.length} session${gone.length > 1 ? "s" : ""} no longer happen${gone.length > 1 ? "" : "s"}: ${gone.map(D.fmtShort).join(", ")}.`]);
+      if (added.length) items.push(["calendar-plus", `${added.length} new session${added.length > 1 ? "s" : ""}: ${added.slice(0, 6).map(D.fmtShort).join(", ")}${added.length > 6 ? " and more" : ""}.`]);
+      if (timeChanged) items.push(["clock", `The time changes to ${D.timeRange(s.from, s.to)}, for every session.`]);
+      if (hosting.length) items.push(["user-x", `Maria Sprecher was hosting ${hosting.map(D.fmtShort).join(" and ")}. Those are cleared, and she's told.`]);
+      if (gone.length && rotationEnds) items.push(["repeat", "Tom Ruiz's rotation (every Friday) no longer fits, so it ends. The Hosting Team's leads are told to set up the new days."]);
+      if (gone.length || added.length || timeChanged || placeChanged) items.push(["mail", "The 1 person registered still has the old schedule. Here's an update to send them, which you can change."]);
+    } else items.push(["check", "This changes only what you see above. No one is emailed."]);
+    const tellOffer = items.some(([i]) => i === "mail");
+    app.innerHTML = `<div class="ps-head"><a class="ps-head__back" href="#" data-back-walk="1">&larr; Back to the questions</a><h1>Before you save</h1>
+      <p class="ps-head__state">Here's what this change does. Nothing has happened yet.</p></div>
+      <div class="ps-review">
+        <section class="ps-card"><div class="ps-card__head"><h2>${SECTIONS.find((x) => x.id === editSec).name}, as it will be</h2></div><div class="ps-card__body">${sentences(editSec)}</div></section>
+        <section class="ps-card"><div class="ps-card__head"><h2>What this changes</h2></div><div class="ps-card__body">
+          <ul class="ps-effects">${items.map(([i, t]) => `<li><i data-lucide="${i}"></i><span>${esc(t)}</span></li>`).join("")}</ul>
+          ${tellOffer ? `<div class="ps-field" style="margin-top:var(--space-3)"><label class="ps-field__label" for="f-upd">The update</label><textarea id="f-upd">There's a change to ${esc(s.name)}.\n\nWhen: ${esc(D.sentence(s))}\n\nIf this changes your plans, reply to this email and let us know.</textarea></div>` : ""}
+          <div class="ps-publish" style="margin-top:var(--space-3)"><button type="button" class="pe-btn pe-btn--primary" data-save-edit="1">${tellOffer ? "Save and send the update" : "Save this change"}</button>${tellOffer ? `<button type="button" class="app-act" data-save-edit="quiet">Save without sending</button>` : ""}<button type="button" class="app-act" data-cancel-edit="1">Cancel the change</button></div>
+        </div></section>
+      </div>`;
+    window.lucide && lucide.createIcons();
+  }
+
+  function startPage() {
+    app.innerHTML = `<div class="ps-head"><a class="ps-head__back" href="#">&larr; Programs</a><h1>What are you offering?</h1>
+      <p class="ps-head__state">Choose a shape to start from. It fills in answers, and you'll still see each one as you go.</p></div>
+      <div class="ps-shapes">${SHAPES.map(([n, line], i) => `<button type="button" class="ps-choice" data-shape="${i}" style="text-align:left;font:inherit"><span class="ps-choice__text"><strong>${n}</strong><span>${line}</span></span></button>`).join("")}</div>
+      <p style="margin:var(--space-3) 0 var(--space-4)"><button type="button" class="app-act" data-shape="blank">Start with a blank program &rarr;</button></p>
+      <h2 style="font-family:var(--font-heading);font-weight:400;font-size:var(--text-h4);color:var(--rim-heading);margin:0 0 6px">Or copy a program</h2>
+      <p class="ps-head__state" style="margin-bottom:var(--space-2)">A copy keeps the words, questions, teachers, helpers, dana and settings, and asks for the new dates. It never copies the people registered.</p>
+      <div class="ps-shapes"><button type="button" class="ps-choice" data-copy="1" style="text-align:left;font:inherit"><span class="ps-choice__text"><strong>Mindful Photography</strong><span>Course · from Oct 2026 · 12 places · 2 questions</span></span></button><button type="button" class="ps-choice" data-copy="1" style="text-align:left;font:inherit"><span class="ps-choice__text"><strong>Awakening to the Beauty of This Moment</strong><span>Retreat · Nov 2026 · 14 places · 5 questions</span></span></button></div>`;
+  }
+
+  /* ── Screens and the guide's notes ── */
+  const NOTES = {
+    start: "Starting a program is the same as today: a shape, a blank program, or a copy. The difference is what comes next: one question at a time.",
+    walk: "One question at a time, in the order a person decides. Your answers build up on the right (above, on a phone): tap any one to go back to it. It's a draft the whole way, saved as you go, so stopping halfway loses nothing, and no team is told anything until Publish.",
+    review: "Everything as sentences, each section with its own Change. What publishing will set off is said before it happens. Publish stays off while something it needs is missing, and each missing thing links straight to its question.",
+    program: "After it's set up, the program's page is these same sentences. Change opens just that section's questions.",
+    change: "Changing the schedule of a published program: walk its questions, then see what the change does (sessions that go, volunteers who are told, a rotation that ends, an update for the person registered) before anything happens.",
+    photo: "Today the editor asks for an End Date & Time, and Mindful Photography's says December 30: its time reads “Begins 7 PM CT” and calendar entries run for two months. Here a repeating program has no end date to misread. It asks how it ends, and lists the four Fridays.",
+    saturday: "Try to choose a Saturday: you can't. Only Wednesdays can be picked, so the first session is always a real session and every count comes out right.",
+    mind: "Change “Every week” to “Once a month”. The time is kept, Friday carries over, and it asks which Friday. The first session no longer fits, so it asks for that again and says why. Tap any answer on the right to go back.",
+    hours: "5 AM to 6 PM is thirteen hours. The length is always shown, and a long one gets a plain question. Change AM to PM and it settles.",
+  };
+  function show(name, tryKey) {
+    screen = name;
+    document.querySelectorAll("[data-go]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.go === name && !tryKey)));
+    document.querySelectorAll("[data-try]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.try === tryKey)));
+    noteEl.textContent = NOTES[tryKey || name] || "";
+    problem = ""; changeMsg = "";
+    if (name === "start") startPage();
+    if (name === "walk") walk();
+    if (name === "review") review();
+    if (name === "program") programPage();
+    if (name === "change") walk();
+    if (name === "confirm") editConfirm();
+    window.scrollTo({ top: 0 });
+  }
+  function beginNew(preset) {
+    s = Object.assign(blank(), preset || {});
+    mode = "new"; editSec = null; fromReview = false; seen = new Set(); at = "name";
+  }
+  function beginEdit(secId) {
+    if (!s.name) s = photo();
+    original = JSON.parse(JSON.stringify(s));
+    mode = "edit"; editSec = secId; fromReview = false; at = live()[0].id;
+    seen = new Set(live().map((x) => x.id));
+  }
+  function goStep(id) {
+    at = id; problem = ""; changeMsg = "";
+    walk();
+    document.getElementById("ps-q")?.focus({ preventScroll: true });
+    if (window.innerWidth <= 1000) document.querySelector(".ps-step")?.scrollIntoView({ block: "start" });
+  }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("button, a");
+    if (!t) return;
+    if (t.matches("[data-go]")) {
+      const g = t.dataset.go;
+      if (g === "walk") { if (screen === "start" || !s.name) beginNew({}); else { mode = "new"; editSec = null; } show("walk"); }
+      else if (g === "review") { if (!s.name) { s = photo(); seen = new Set(STEPS.map((x) => x.id)); } mode = "new"; editSec = null; fromReview = false; show("review"); }
+      else if (g === "change") { s = photo(); beginEdit("when"); show("change"); }
+      else if (g === "program") { if (!s.name || !published) s = photo(); show("program"); }
+      else { beginNew({}); show(g); }
+      return;
+    }
+    if (t.matches("[data-try]")) {
+      const k = t.dataset.try;
+      s = photo(); mode = "new"; editSec = null; fromReview = false; seen = new Set(STEPS.map((x) => x.id));
+      if (k === "photo") at = "ends";
+      if (k === "saturday") { Object.assign(s, { days: [3], first: null, ends: "count", count: "6", _cal: { first: "2026-11" } }); seen = new Set(STEPS.slice(0, STEPS.findIndex((x) => x.id === "first") + 1).map((x) => x.id)); at = "first"; }
+      if (k === "mind") at = "often";
+      if (k === "hours") { Object.assign(s, { from: "05:00", to: "18:00" }); at = "time"; }
+      show("walk", k);
+      return;
+    }
+    e.preventDefault();
+    if (t.dataset.screen) { if (t.dataset.screen === "start") { beginNew({}); show("start"); } else show(t.dataset.screen); return; }
+    if (t.dataset.shape !== undefined) { const sh = SHAPES[+t.dataset.shape]; beginNew(sh ? Object.assign({ kind: sh[0] }, JSON.parse(JSON.stringify(sh[2]))) : {}); show("walk"); return; }
+    if (t.dataset.copy) { const c = photo(); Object.assign(c, { name: c.name + " (copy)", slug: "mindful-photography-2", first: null, until: null }); beginNew(c); show("walk"); noteEl.textContent = "A copy walks the same questions with its answers filled in. Only the dates are empty."; return; }
+    if (t.dataset.goto) { if (screen === "review") { fromReview = true; show("walk"); } goStep(t.dataset.goto); return; }
+    if (t.dataset.gotoNew) { fromReview = true; screen = "walk"; goStep(t.dataset.gotoNew); return; }
+    if (t.dataset.change) { fromReview = true; screen = "walk"; at = live().find((x) => x.sec === t.dataset.change).id; seen.add(at); walk(); window.scrollTo({ top: 0 }); return; }
+    if (t.dataset.edit) { beginEdit(t.dataset.edit); show("change"); noteEl.textContent = NOTES.change; return; }
+    if (t.dataset.backWalk) { if (mode === "edit") { at = live()[live().length - 1].id; show("change"); } else { at = live()[live().length - 1].id; show("walk"); } return; }
+    if (t.dataset.publish) { published = true; flash = "Published. It's on Programs & Events, and the Hosting Team has been told."; show("program"); return; }
+    if (t.dataset.draft) { flash = "Kept as a draft. It's in Programs under Drafts, just as you left it."; review(); return; }
+    if (t.dataset.saveEdit) { flash = t.dataset.saveEdit === "quiet" ? "Saved. Maria has been told about her sessions." : "Saved. The update is on its way, and Maria has been told about her sessions."; mode = "new"; show("program"); return; }
+    if (t.dataset.cancelEdit) { s = original; mode = "new"; flash = ""; show("program"); return; }
+    if (t.dataset.pick) { s[t.dataset.pick] = t.dataset.day; reconcile(t.dataset.pick); problem = ""; walk(); document.querySelector(`[data-day="${t.dataset.day}"]`)?.focus(); return; }
+    if (t.dataset.cal) {
+      const k = t.dataset.cal, v = s._cal[k] || (s[k] || "2026-10-01").slice(0, 7);
+      const [y, m] = v.split("-").map(Number); const n = new Date(Date.UTC(y, m - 1 + +t.dataset.dir, 1));
+      s._cal[k] = n.toISOString().slice(0, 7); walk(); document.querySelector(`[data-cal="${k}"][data-dir="${t.dataset.dir}"]`)?.focus(); return;
+    }
+    if (t.dataset.homefrom) { s._homeFromOpen = !s._homeFromOpen; walk(); return; }
+    if (t.dataset.qdel !== undefined) { s.questions.splice(+t.dataset.qdel, 1); walk(); return; }
+    if (t.dataset.qadd) { s.questions.push({ label: "How did you hear about this program?", kind: "A short answer", required: false, by: "the registration team" }); walk(); return; }
+    if (t.dataset.tpl) { s.danaMsg = { "General support": "Your dana makes this program possible. RIM is supported entirely by the generosity of our community. Every amount is welcome.", Reciprocity: "This is an old practice of reciprocity: the teachings are offered freely, and we give back as we are able. All amounts are welcome.", "No one turned away": "Please offer an amount that reflects both your means and your appreciation for the teaching. No one is turned away for lack of funds." }[t.dataset.tpl]; walk(); return; }
+    if (t.dataset.nav) {
+      const steps = live(), st = step(), i = steps.indexOf(st);
+      if (t.dataset.nav === "back") { goStep(steps[Math.max(0, i - 1)].id); return; }
+      if (t.dataset.nav === "next" || t.dataset.nav === "skip") {
+        const need = t.dataset.nav === "next" && st.need && st.need(s);
+        if (need) { problem = need; walk(); document.querySelector("[role=alert]")?.scrollIntoView({ block: "center" }); return; }
+        if (fromReview) { fromReview = false; show("review"); return; }
+        if (i === steps.length - 1) { show(mode === "new" ? "review" : "confirm"); return; }
+        goStep(steps[i + 1].id);
+      }
+    }
+  });
+
+  function rerenderKeepingFocus() {
+    const a = document.activeElement, id = a && a.id, pos = a && a.selectionStart;
+    walk();
+    if (id) { const el = document.getElementById(id); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} } }
+  }
+  document.addEventListener("input", (e) => {
+    const el = e.target;
+    if (!app.contains(el)) return;
+    if (el.dataset.k) {
+      s[el.dataset.k] = el.type === "checkbox" ? el.checked : el.value;
+      if (el.dataset.k === "kitchen" && !el.checked) s.kitchenReach = false;
+      if (el.dataset.k === "noTeacher" && el.checked) s.teachers = [];
+      reconcile(el.dataset.k); problem = "";
+      rerenderKeepingFocus();
+    }
+  });
+  document.addEventListener("change", (e) => {
+    const el = e.target;
+    if (!app.contains(el)) return;
+    if (el.type === "radio" && el.name) {
+      const before = s[el.name];
+      let v = el.value; if (el.name === "monthDay") v = +v; if (el.name === "monthWeek") v = v === "last" ? "last" : +v;
+      s[el.name] = v;
+      const msgs = reconcile(el.name);
+      changeMsg = msgs.length && ((before != null && before !== v) || msgs.some((m) => m.includes("first session"))) ? msgs.join(" ") : "";
+      problem = ""; walk(); document.querySelector(`input[name="${el.name}"][value="${el.value}"]`)?.focus();
+      return;
+    }
+    if (el.dataset.day !== undefined && el.type === "checkbox") { const d = +el.dataset.day; s.days = el.checked ? [...s.days, d] : s.days.filter((x) => x !== d); const dm = reconcile("days"); changeMsg = dm.some((m) => m.includes("first session")) ? dm.filter((m) => m.includes("first session")).join(" ") : changeMsg; problem = ""; walk(); document.querySelector(`input[data-day="${d}"]`)?.focus(); return; }
+    if (el.dataset.teacher) { const n = el.dataset.teacher; s.teachers = el.checked ? [...s.teachers, n] : s.teachers.filter((x) => x !== n); if (el.checked) s.noTeacher = false; walk(); return; }
+    if (el.dataset.team) { const n = el.dataset.team; s.support = el.checked ? [...s.support, n] : s.support.filter((x) => x !== n); walk(); return; }
+    const row = el.closest("[data-time]");
+    if (row) {
+      const g = (p) => row.querySelector(`[data-part="${p}"]`).value;
+      let h = +g("h") % 12; if (g("ap") === "PM") h += 12;
+      s[row.dataset.time] = `${String(h).padStart(2, "0")}:${g("m")}`;
+      problem = ""; const part = el.dataset.part; walk(); document.querySelector(`[data-time="${row.dataset.time}"] [data-part="${part}"]`)?.focus();
+    }
+  });
+
+  show("start");
+})();
+
+</script>
+</body>
+</html>

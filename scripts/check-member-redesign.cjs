@@ -18,7 +18,7 @@ function load(file, imports = {}) {
     if (name in imports) return imports[name];
     if (name.startsWith('react')) return require(name);
     throw Error(`Unexpected dependency in test: ${name}`);
-  }, console, Date: TestDate, URL, setTimeout }, { filename: file });
+  }, console, Date: TestDate, URL, URLSearchParams, setTimeout, process: { env: {} } }, { filename: file });
   return module.exports;
 }
 const organization = load('lib/fileOrganization.ts');
@@ -540,7 +540,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   const su = load('lib/scheduleUtils.ts', { './timezone': load('lib/timezone.ts') });
   const eightWednesdays = { id: 'c', name: 'C', slug: 'c', programFormat: 'in-person', startDatetime: new Date('2026-11-05T01:00:00Z'), endDatetime: new Date('2026-11-05T02:30:00Z'), recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['WE'], recurrenceCount: 8 };
   check([su.lastOccurrenceDate(eightWednesdays), su.lastOccurrenceDate({ ...eightWednesdays, recurrenceCount: null }), su.lastOccurrenceDate({ ...eightWednesdays, recurrenceFreq: null })], ['2026-12-23', null, '2026-11-04'], 'eight weekly classes from Nov 4 (Central) end Dec 23; an open series has no end; one-time ends on its day');
-  check([su.lastOccurrenceDate({ ...eightWednesdays, recurrenceDays: [] }), su.lastOccurrenceDate({ ...eightWednesdays, recurrenceCount: 1 })], [null, null], 'no days ticked, or a count of one: read as ongoing, as the schedule reads them (no crash)');
+  check([su.lastOccurrenceDate({ ...eightWednesdays, recurrenceDays: [] }), su.lastOccurrenceDate({ ...eightWednesdays, recurrenceCount: 1 })], ['2026-12-23', null], 'no days ticked means the start\'s own weekday (2026-10-28; it meant every day); a count of one reads as ongoing');
   const lastEnd = su.lastOccurrenceEnd(eightWednesdays);
   check(lastEnd.toISOString(), '2026-12-24T05:59:00.000Z', 'the last class day ends at 23:59 Central (so a 7 PM class is still current that evening)');
   const series = { startDatetime: '2026-11-05T01:00:00Z', endDatetime: '2026-11-05T02:30:00Z', recurrenceFreq: 'WEEKLY', archivedAt: null };
@@ -558,6 +558,88 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   // A monthly series with a count ends on its last session; one phone format (2026-10-26).
   const sixLastSundays = { id: 'm', name: 'M', slug: 'm', programFormat: 'virtual', startDatetime: new Date('2026-10-25T15:00:00Z'), endDatetime: new Date('2026-10-25T16:00:00Z'), recurrenceFreq: 'MONTHLY', recurrenceInterval: 1, recurrenceDays: [], recurrenceCount: 6 };
   check(su.lastOccurrenceDate(sixLastSundays), '2027-03-28', 'six last-Sundays from Oct 25, 2026 end on the last Sunday of March 2027');
+
+  // Setting up a program, step by step (2026-10-28, Phase 1): the count is
+  // exact, a series can end on a date, every other week keeps its weeks.
+  const ct7pm = (ymd) => new Date(`${ymd}T${ymd < '2026-11-01' ? '00' : '01'}:00:00Z`); // 7 PM Central the evening before, in UTC
+  const wk = (start, days, count, extra = {}) => ({ id: 'w', name: 'W', slug: 'w', programFormat: 'virtual', startDatetime: start, endDatetime: start, recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: days, recurrenceCount: count, recurrenceUntil: null, ...extra });
+  const mon2 = ct7pm('2026-11-03'); // Monday, November 2, 7 PM Central
+  check(su.lastOccurrenceDate(wk(mon2, ['WE'], 4)), '2026-11-25', 'a Monday start with Wednesday ticked: 4 sessions are 4 Wednesdays, Nov 4 to Nov 25 (it gave 3)');
+  check(su.lastOccurrenceDate(wk(mon2, ['MO', 'WE'], 4)), '2026-11-11', 'Mondays and Wednesdays, 4 sessions, end Wednesday Nov 11 (it gave 5)');
+  check(su.lastOccurrenceDate(wk(mon2, ['MO', 'WE', 'FR'], 5)), '2026-11-11', 'three days, 5 sessions, end Wednesday Nov 11 (it gave 7)');
+  check(su.isOccurrenceOnDate(wk(mon2, ['WE'], 4), '2026-11-02'), false, 'an off-day start is not itself a session');
+  const fri30 = ct7pm('2026-10-31'); // Friday, October 30, 7 PM Central
+  const untilNov20 = wk(fri30, ['FR'], null, { recurrenceUntil: new Date('2026-11-20T12:00:00Z') });
+  check([su.isOccurrenceOnDate(untilNov20, '2026-11-20'), su.isOccurrenceOnDate(untilNov20, '2026-11-27'), su.lastOccurrenceDate(untilNov20)], [true, false, '2026-11-20'], 'ends on a date: that day is the last session');
+  check(su.lastOccurrenceDate({ ...untilNov20, recurrenceCount: 2 }), '2026-11-06', 'a count and an end date: whichever comes first');
+  const everyOther = wk(mon2, ['MO', 'WE'], null, { recurrenceInterval: 2 });
+  check(['2026-11-02', '2026-11-04', '2026-11-09', '2026-11-11', '2026-11-16', '2026-11-18'].map((d) => su.isOccurrenceOnDate(everyOther, d)), [true, true, false, false, true, true], 'every other week keeps each week\'s days together (weeks run Monday to Sunday)');
+
+  // The save refuses a schedule that can't mean what it says.
+  const sch = load('lib/programSchedule.ts');
+  const okWeekly = { start: '2026-10-30T19:00', end: '2026-10-30T19:45', freq: 'WEEKLY', interval: 1, days: ['FR'], count: 4, until: null };
+  check(sch.scheduleRefusal(okWeekly), null, 'four Fridays from Oct 30, 7 to 7:45 PM: fine');
+  check([
+    sch.scheduleRefusal({ ...okWeekly, days: [] }),
+    sch.scheduleRefusal({ ...okWeekly, days: ['WE'] }),
+    sch.scheduleRefusal({ ...okWeekly, end: '2026-12-30T19:45' }),
+    sch.scheduleRefusal({ ...okWeekly, interval: 20 }),
+    sch.scheduleRefusal({ ...okWeekly, freq: 'DAILY', days: [] }),
+    sch.scheduleRefusal({ ...okWeekly, count: 1 }),
+    sch.scheduleRefusal({ ...okWeekly, count: null, until: '2026-10-01' }),
+    sch.scheduleRefusal({ ...okWeekly, end: '2026-10-30T18:00' }),
+  ].map((m) => (m || '').replace(/^Under When and where: (.{0,24}).*/, '$1')), [
+    'choose the days it meets',
+    'the first session is a F',
+    'for a program that repea',
+    'a program meets every we',
+    'choose every week, every',
+    'a series has at least 2 ',
+    'the series ends before i',
+    'it ends before it begins',
+  ], 'no day, an off-day start, Mindful Photography\'s end date, every 20 weeks, a new Daily, one session, an end before the start, an end before the time it begins');
+  check(sch.scheduleRefusal({ ...okWeekly, freq: 'DAILY', days: [] }, { freq: 'DAILY', interval: 1 }), null, 'a program already Daily keeps it while its pattern is unchanged');
+  // A rule speaks only when its own parts change, so a program saved before
+  // these rules can still change its other parts (the editor sends only what changed).
+  const photoStored = { ...okWeekly, end: '2026-12-30T19:45', count: 4 };
+  check([
+    sch.scheduleRefusal(photoStored, { freq: 'WEEKLY', interval: 1 }, new Set(['count'])),
+    (sch.scheduleRefusal(photoStored, { freq: 'WEEKLY', interval: 1 }, new Set(['end'])) || '').slice(0, 45),
+    sch.scheduleRefusal({ ...okWeekly, days: ['wE'], start: '2026-11-04T19:00', end: '2026-11-04T19:45' }, undefined, undefined),
+    (sch.scheduleRefusal({ ...okWeekly, days: ['we'] }) || '').includes('meets on Wednesdays'),
+  ], [null, 'Under When and where: for a program that repe', null, true], 'Mindful Photography can change its count without fixing its End, but changing its End asks for the right day; days in any case');
+  check([sch.parseUntil('2026-11-20').toISOString(), sch.parseUntil(''), sch.parseUntil('Nov 20')], ['2026-11-20T12:00:00.000Z', null, undefined], 'an end date is a Central day, stored at noon UTC');
+
+  // Calendar files say what the site says.
+  const tzmod = load('lib/timezone.ts');
+  const cal = load('lib/calendarLinks.ts', { './scheduleUtils': su, './timezone': tzmod });
+  const photoIcs = cal.buildIcsContent({ title: 'Mindful Photography', startDatetime: fri30.toISOString(), endDatetime: '2026-12-31T01:45:00.000Z', programSlug: 'mindful-photography', recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['FR'], recurrenceCount: 4 });
+  check([/DTSTART;TZID=America\/Chicago:20261030T190000/.test(photoIcs), /DTEND;TZID=America\/Chicago:20261030T194500/.test(photoIcs), /RRULE:FREQ=WEEKLY;BYDAY=FR;WKST=MO;UNTIL=20261121T055900Z/.test(photoIcs)], [true, true, true], 'four Fridays: each event 7 to 7:45 PM Central (not to December 30), through Nov 20');
+  const offIcs = cal.buildIcsContent({ title: 'X', startDatetime: mon2.toISOString(), endDatetime: mon2.toISOString(), programSlug: 'x', recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['WE'], recurrenceCount: null });
+  check([/DTSTART;TZID=America\/Chicago:20261104T190000/.test(offIcs), /UNTIL|COUNT/.test(offIcs)], [true, false], 'an off-day start: the calendar begins on the first real session, and an ongoing series has no end');
+  const monthIcs = cal.buildIcsContent({ title: 'M', startDatetime: sixLastSundays.startDatetime.toISOString(), endDatetime: sixLastSundays.endDatetime.toISOString(), programSlug: 'm', recurrenceFreq: 'MONTHLY', recurrenceInterval: 1, recurrenceDays: [], recurrenceCount: 6 });
+  check(/RRULE:FREQ=MONTHLY;BYDAY=-1SU;UNTIL=20270329/.test(monthIcs), true, 'monthly repeats on the last Sunday, as the site does, through March 28');
+  const gUrl = new URL(cal.buildGoogleCalendarUrl({ title: 'Mindful Photography', startDatetime: fri30.toISOString(), endDatetime: '2026-12-31T01:45:00.000Z', programSlug: 'mindful-photography', recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['FR'], recurrenceCount: 4 }));
+  check([gUrl.searchParams.get('dates'), gUrl.searchParams.get('ctz'), /^RRULE:FREQ=WEEKLY;BYDAY=FR/.test(gUrl.searchParams.get('recur'))], ['20261030T190000/20261030T194500', 'America/Chicago', true], 'Google gets one session, in Central time, repeating');
+
+  // One order for a section, wherever it shows: shown first, then what goes
+  // on by weekday and time, then what has an end by its first session.
+  const ord = load('lib/programOrder.ts', { './timezone': tzmod });
+  const on = (iso) => new Date(iso);
+  const groups = [
+    { name: 'Recovery Dharma', startDatetime: on('2026-04-19T14:30:00Z'), recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['SU'], recurrenceCount: null },
+    { name: 'Nature Meditation KM Group', startDatetime: on('2026-07-26T14:30:00Z'), recurrenceFreq: 'MONTHLY', recurrenceInterval: 1, recurrenceDays: [], recurrenceCount: null },
+    { name: 'Our Hearts Were Made for This', startDatetime: on('2026-04-12T14:00:00Z'), recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['SU'], recurrenceCount: null },
+    { name: 'Qigong at RIM', startDatetime: on('2026-04-15T15:00:00Z'), recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['WE'], recurrenceCount: null },
+  ];
+  check(Array.from(ord.inListingOrder(groups), (p) => p.name), ['Qigong at RIM', 'Our Hearts Were Made for This', 'Recovery Dharma', 'Nature Meditation KM Group'], 'Wednesday, then Sunday 9:00, Sunday 9:30 weekly, Sunday 9:30 monthly');
+  const events = [
+    { name: 'End of Year Gathering', startDatetime: on('2026-12-05T23:00:00Z'), recurrenceFreq: null, recurrenceInterval: null, recurrenceDays: [], recurrenceCount: null },
+    { name: 'Mindful Photography', startDatetime: fri30, recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['FR'], recurrenceCount: 4 },
+  ];
+  check(Array.from(ord.inListingOrder(events), (p) => p.name), ['Mindful Photography', 'End of Year Gathering'], 'programs with an end go by their first session');
+  check(Array.from(ord.inListingOrder([...groups, { ...events[0], listFirst: 1 }]), (p) => p.name)[0], 'End of Year Gathering', 'shown first leads its section');
+  check(groups.map((p) => p.name)[0], 'Recovery Dharma', 'ordering does not change the list it was given');
   const ph = load('lib/phone.ts');
   check([ph.formatPhone('4143507893'), ph.formatPhone('+1 414 350 7893'), ph.formatPhone('ext 12')], ['(414) 350-7893', '(414) 350-7893', 'ext 12'], 'one phone format; anything else as typed');
 

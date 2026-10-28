@@ -60,7 +60,7 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
       recurrenceFreq: true,
       recurrenceInterval: true,
       recurrenceDays: true,
-      recurrenceCount: true,
+      recurrenceCount: true, recurrenceUntil: true,
       programFormat: true,
       outsideMeetingUrl: true,
       hostingHubSlug: true,

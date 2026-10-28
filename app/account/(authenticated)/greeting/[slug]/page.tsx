@@ -49,7 +49,7 @@ export default async function SessionTeamPage({
     select: {
       id: true, slug: true, name: true, startDatetime: true, programFormat: true, hostingHubSlug: true,
       registrationEnabled: true, registrationFields: true, archivedAt: true,
-      endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+      endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
     },
   });
   if (!program) notFound();

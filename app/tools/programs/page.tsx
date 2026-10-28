@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { resolveOffering } from "@/lib/programOffering";
 import { registrationWindow } from "@/lib/registrationWindow";
 import { fmtDay } from "@/lib/registrationDesk";
+import { inListingOrder } from "@/lib/programOrder";
 import ProgramsTableClient, {
   type ProgramRow,
 } from "@/components/registrar/ProgramsTableClient";
@@ -33,7 +34,7 @@ export default async function ProgramsToolPage() {
   const canArchive = canUseProgramManager(roles);
 
   const pgPrograms = await db.program.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    orderBy: { name: "asc" },
     select: {
       id: true,
       name: true,
@@ -47,6 +48,11 @@ export default async function ProgramsToolPage() {
       startDatetime: true,
       endDatetime: true,
       recurrenceFreq: true,
+      recurrenceInterval: true,
+      recurrenceDays: true,
+      recurrenceCount: true,
+      recurrenceUntil: true,
+      listFirst: true,
       registrationCapacity: true,
       archivedAt: true,
       offeringCategory: true,
@@ -74,7 +80,7 @@ export default async function ProgramsToolPage() {
     pendingDanaRows.map((r) => [r.programId, r._count._all])
   );
 
-  const programRows: ProgramRow[] = pgPrograms.map((p) => {
+  const programRows: ProgramRow[] = inListingOrder(pgPrograms).map((p) => {
     const rows = counts.filter((c) => c.programId === p.id);
     const byStatus = Object.fromEntries(rows.map((c) => [c.status, c._count._all]));
     const confirmedCount = (byStatus.REGISTERED ?? 0) + (byStatus.APPROVED ?? 0);

@@ -4,6 +4,7 @@ import { buildSubtitle, fmtLabel, hasConcludedOneTime } from "@/lib/programUtils
 import { whereOfferingCategory } from "@/lib/programOffering";
 import { activeAnnouncement } from "@/lib/scheduleUtils";
 import ProgramRow from "@/components/ProgramRow";
+import { inListingOrder } from "@/lib/programOrder";
 
 export const metadata = {
   title: "Community Groups and Activities - Rooted In Mindfulness",
@@ -26,12 +27,12 @@ export default async function KalyanaGroupsPage() {
       ...whereOfferingCategory("COMMUNITY_GROUP"),
     },
     include: { category: true },
-    orderBy: { sortOrder: "asc" },
+    orderBy: { name: "asc" },
   });
 
   // Same rule as /community-programs: a concluded one-time event leaves the
   // public listings unless the editor opted out (hideWhenPast, default true).
-  const groups = allGroups.filter((g) => !(g.hideWhenPast && hasConcludedOneTime(g)));
+  const groups = inListingOrder(allGroups).filter((g) => !(g.hideWhenPast && hasConcludedOneTime(g)));
 
   return (
     <div className="pp-page pp-page--spine">

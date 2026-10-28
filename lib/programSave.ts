@@ -28,6 +28,7 @@ import { cleanOffering, resolveOffering } from "@/lib/programOffering";
 import { ctDateStr, parseAnnouncementUntil, shiftToDate } from "@/lib/scheduleUtils";
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
+import { parseUntil, scheduleRefusal, type SchedulePart } from "@/lib/programSchedule";
 import { normalizeLinkInput } from "@/lib/linkInput";
 import { canUseProgramManager, canUseRegistration } from "@/lib/toolAuth";
 import { emailLocationFor } from "@/lib/locations";
@@ -326,7 +327,51 @@ export async function saveProgram(actor: SaveActor, slug: string, body: any): Pr
   if (body.recurrenceFreq !== undefined) data.recurrenceFreq = body.recurrenceFreq || null;
   if (body.recurrenceInterval !== undefined) data.recurrenceInterval = body.recurrenceInterval != null ? Number(body.recurrenceInterval) : null;
   if (body.recurrenceDays !== undefined) data.recurrenceDays = body.recurrenceDays;
-  if (body.recurrenceCount !== undefined) data.recurrenceCount = body.recurrenceCount != null ? Number(body.recurrenceCount) : null;
+  if (body.recurrenceCount !== undefined) data.recurrenceCount = body.recurrenceCount != null && body.recurrenceCount !== "" ? Number(body.recurrenceCount) : null;
+  // A series that ends on a date (2026-10-28): "YYYY-MM-DD", Central.
+  if (body.recurrenceUntil !== undefined) {
+    const until = parseUntil(body.recurrenceUntil);
+    if (until === undefined) return reply({ error: "Under When and where: the end date wasn't understood. Choose it again. Nothing was saved." }, { status: 422 });
+    data.recurrenceUntil = until;
+  }
+  // The schedule can't mean something other than it says (lib/programSchedule.ts):
+  // checked whenever this save changes it, on the schedule as it would be.
+  const SCHEDULE_FIELDS: Record<string, SchedulePart> = {
+    startDatetime: "start", endDatetime: "end", recurrenceFreq: "freq", recurrenceInterval: "interval",
+    recurrenceDays: "days", recurrenceCount: "count", recurrenceUntil: "until",
+  };
+  if (Object.keys(SCHEDULE_FIELDS).some((f) => body[f] !== undefined)) {
+    const freqNow = (data.recurrenceFreq !== undefined ? data.recurrenceFreq : existing.recurrenceFreq) as string | null;
+    // Moving a repeating program's first session carries its end time along:
+    // the end is the time each session ends, on the first session's day, and
+    // the editor sends only the start when only the start changed.
+    if (freqNow && data.startDatetime && body.endDatetime === undefined && existing.endDatetime) {
+      const newDay = ctDateStr((data.startDatetime as Date).toISOString());
+      if (ctDateStr(existing.endDatetime.toISOString()) !== newDay) {
+        data.endDatetime = shiftToDate(existing.endDatetime.toISOString(), newDay);
+      }
+    }
+    const changedParts = new Set(Object.entries(SCHEDULE_FIELDS).filter(([f]) => body[f] !== undefined).map(([, part]) => part));
+    if (data.endDatetime !== undefined) changedParts.add("end");
+    const pick = <T,>(f: string, stored: T): T => (data[f] !== undefined ? (data[f] as T) : stored);
+    const startAt = pick<Date | null>("startDatetime", existing.startDatetime);
+    const endAt = pick<Date | null>("endDatetime", existing.endDatetime);
+    const untilAt = pick<Date | null>("recurrenceUntil", existing.recurrenceUntil);
+    const refusal = scheduleRefusal(
+      {
+        start: startAt ? toCentralDatetime(startAt) : null,
+        end: endAt ? toCentralDatetime(endAt) : null,
+        freq: pick<string | null>("recurrenceFreq", existing.recurrenceFreq),
+        interval: pick<number | null>("recurrenceInterval", existing.recurrenceInterval),
+        days: pick<string[]>("recurrenceDays", existing.recurrenceDays),
+        count: pick<number | null>("recurrenceCount", existing.recurrenceCount),
+        until: untilAt ? ctDateStr(untilAt.toISOString()) : null,
+      },
+      { freq: existing.recurrenceFreq, interval: existing.recurrenceInterval },
+      changedParts,
+    );
+    if (refusal) return reply({ error: refusal }, { status: 422 });
+  }
   if (body.registrationEnabled !== undefined) data.registrationEnabled = body.registrationEnabled;
   if (body.registrationClosed !== undefined) data.registrationClosed = body.registrationClosed;
   if (body.registrationCapacity !== undefined) data.registrationCapacity = body.registrationCapacity != null ? Number(body.registrationCapacity) : null;
@@ -458,10 +503,11 @@ export async function saveProgram(actor: SaveActor, slug: string, body: any): Pr
     body.startDatetime !== undefined
       ? body.startDatetime
       : toCentralDatetime(existing.startDatetime);
+  // The end may have moved with the first session (above), not only by the body.
   const endSource =
     body.endDatetime !== undefined
       ? body.endDatetime
-      : toCentralDatetime(existing.endDatetime);
+      : toCentralDatetime((data.endDatetime as Date | undefined) ?? existing.endDatetime);
   const freqSource =
     body.recurrenceFreq !== undefined ? body.recurrenceFreq : existing.recurrenceFreq;
   const daysSource =
@@ -611,7 +657,9 @@ export async function saveProgram(actor: SaveActor, slug: string, body: any): Pr
     (data.recurrenceCount !== undefined &&
       (data.recurrenceCount ?? null) !== (existing.recurrenceCount ?? null)) ||
     (data.recurrenceDays !== undefined &&
-      !sameDays(data.recurrenceDays as string[], existing.recurrenceDays));
+      !sameDays(data.recurrenceDays as string[], existing.recurrenceDays)) ||
+    (data.recurrenceUntil !== undefined &&
+      ms(data.recurrenceUntil as Date | null) !== ms(existing.recurrenceUntil));
   const scheduleMoved = stillVirtual && scheduleChanged;
   // Which DAYS it meets changed (not just the time of day): the start's
   // Central date, the pattern, or a one-time program's end date. A time-only
@@ -625,7 +673,8 @@ export async function saveProgram(actor: SaveActor, slug: string, body: any): Pr
     (data.recurrenceFreq !== undefined && (data.recurrenceFreq ?? null) !== (existing.recurrenceFreq ?? null)) ||
     (data.recurrenceInterval !== undefined && (data.recurrenceInterval ?? null) !== (existing.recurrenceInterval ?? null)) ||
     (data.recurrenceCount !== undefined && (data.recurrenceCount ?? null) !== (existing.recurrenceCount ?? null)) ||
-    (data.recurrenceDays !== undefined && !sameDays(data.recurrenceDays as string[], existing.recurrenceDays));
+    (data.recurrenceDays !== undefined && !sameDays(data.recurrenceDays as string[], existing.recurrenceDays)) ||
+    (data.recurrenceUntil !== undefined && ctDay(data.recurrenceUntil as Date | null) !== ctDay(existing.recurrenceUntil));
 
   // (c) slugChanged — meetings are keyed by slug. Move the rows to the new
   //     slug (the Zoom meetings themselves don't use it), so a session that is
@@ -930,7 +979,7 @@ export async function saveProgram(actor: SaveActor, slug: string, body: any): Pr
     const asUpdate = (p: typeof existing): UpdateProgram => ({
       startDatetime: p.startDatetime, endDatetime: p.endDatetime,
       recurrenceFreq: p.recurrenceFreq, recurrenceInterval: p.recurrenceInterval,
-      recurrenceDays: p.recurrenceDays, recurrenceCount: p.recurrenceCount,
+      recurrenceDays: p.recurrenceDays, recurrenceCount: p.recurrenceCount, recurrenceUntil: p.recurrenceUntil,
       programFormat: p.programFormat, place: emailLocationFor(p).emailText,
       // An older message (BlockNote JSON) as HTML, so the first save of it
       // in the new editor isn't taken for a change.
@@ -966,6 +1015,19 @@ export async function createProgram(actor: SaveActor, body: any): Promise<SaveRe
   if (!name || !slug) {
     return reply({ error: "Name and slug are required" }, { status: 400 });
   }
+  // The schedule can't mean something other than it says (lib/programSchedule.ts).
+  const createUntil = parseUntil(body.recurrenceUntil);
+  if (createUntil === undefined) return reply({ error: "Under When and where: the end date wasn't understood. Choose it again. Nothing was saved." }, { status: 422 });
+  const createRefusal = scheduleRefusal({
+    start: body.startDatetime || null,
+    end: body.endDatetime || null,
+    freq: body.recurrenceFreq || null,
+    interval: body.recurrenceInterval != null && body.recurrenceInterval !== "" ? Number(body.recurrenceInterval) : null,
+    days: Array.isArray(body.recurrenceDays) ? body.recurrenceDays : [],
+    count: body.recurrenceCount != null && body.recurrenceCount !== "" ? Number(body.recurrenceCount) : null,
+    until: createUntil ? ctDateStr(createUntil.toISOString()) : null,
+  });
+  if (createRefusal) return reply({ error: createRefusal }, { status: 422 });
   // The pull quote is optional; a source cannot stand without its quote.
   const pullQuote = typeof body.pullQuote === "string" ? body.pullQuote.trim() : "";
   const pullQuoteSource = typeof body.pullQuoteSource === "string" ? body.pullQuoteSource.trim() : "";
@@ -1114,9 +1176,10 @@ export async function createProgram(actor: SaveActor, body: any): Promise<SaveRe
       startDatetime: centralToUtc(body.startDatetime),
       endDatetime: centralToUtc(body.endDatetime),
       recurrenceFreq: body.recurrenceFreq || null,
-      recurrenceInterval: body.recurrenceInterval != null ? Number(body.recurrenceInterval) : null,
+      recurrenceInterval: body.recurrenceInterval != null && body.recurrenceInterval !== "" ? Number(body.recurrenceInterval) : null,
       recurrenceDays: body.recurrenceDays ?? [],
-      recurrenceCount: body.recurrenceCount != null ? Number(body.recurrenceCount) : null,
+      recurrenceCount: body.recurrenceCount != null && body.recurrenceCount !== "" ? Number(body.recurrenceCount) : null,
+      recurrenceUntil: createUntil,
       registrationEnabled: body.registrationEnabled ?? false,
       registrationClosed: body.registrationClosed ?? false,
       registrationCapacity: body.registrationCapacity != null ? Number(body.registrationCapacity) : null,

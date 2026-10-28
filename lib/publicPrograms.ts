@@ -5,6 +5,7 @@ import {
   type OfferingCategoryCode,
 } from "@/lib/programOffering";
 import { hasConcludedOneTime } from "@/lib/programUtils";
+import { inListingOrder } from "@/lib/programOrder";
 
 /**
  * The programs a visitor can find on Programs & Events, each with its
@@ -19,9 +20,10 @@ export async function loadPublicPrograms() {
   const all = await db.program.findMany({
     where: { hideFromProgramPageList: false, archivedAt: null },
     include: { category: true },
-    orderBy: { sortOrder: "asc" },
+    orderBy: { name: "asc" },
   });
-  return all
+  // One order everywhere a section shows (lib/programOrder.ts).
+  return inListingOrder(all)
     .filter((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
     .filter((p) => !p.category?.hideFromProgramsPage)
     .map((p) => ({ ...p, offering: resolveOffering(p) }))

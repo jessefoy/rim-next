@@ -24,8 +24,9 @@ export function programSegmentName(p: {
   startDatetime: Date | string | null;
   recurrenceFreq: string | null;
   recurrenceCount: number | null;
+  recurrenceUntil?: Date | string | null;
 }): string {
-  const ongoing = !!p.recurrenceFreq && !p.recurrenceCount;
+  const ongoing = !!p.recurrenceFreq && !p.recurrenceCount && !p.recurrenceUntil;
   const start = p.startDatetime ? new Date(p.startDatetime) : null;
   if (!start || Number.isNaN(start.getTime()) || ongoing) return p.name.trim();
   const date = new Intl.DateTimeFormat("en-US", {

@@ -101,7 +101,7 @@ export default async function DashboardPage({ searchParams }: {
           id: true, name: true, slug: true, hostingHubSlug: true,
           startDatetime: true, endDatetime: true,
           recurrenceFreq: true, recurrenceInterval: true,
-          recurrenceDays: true, recurrenceCount: true,
+          recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
           programFormat: true, outsideMeetingUrl: true, earlyArrivalMessage: true, specialAnnouncement: true, announcementUntil: true,
           // Open entry drives Today placement: only a program with open entry
           // shows a public Join to non-registrants. (registrationEnabled and
@@ -110,7 +110,7 @@ export default async function DashboardPage({ searchParams }: {
           openEntry: true,
           category: { select: { slug: true, kind: true } },
         },
-        orderBy: { sortOrder: "asc" },
+        orderBy: { name: "asc" },
       }),
       // Include recurrence fields so we can compute each program's next occurrence.
       // We sort by next-occurrence in JS below — Prisma can't express "next
@@ -138,7 +138,7 @@ export default async function DashboardPage({ searchParams }: {
               recurrenceFreq: true,
               recurrenceInterval: true,
               recurrenceDays: true,
-              recurrenceCount: true,
+              recurrenceCount: true, recurrenceUntil: true,
             },
           },
         },
@@ -290,6 +290,7 @@ export default async function DashboardPage({ searchParams }: {
           recurrenceInterval: p.recurrenceInterval ?? null,
           recurrenceDays: p.recurrenceDays ?? [],
           recurrenceCount: p.recurrenceCount ?? null,
+          recurrenceUntil: p.recurrenceUntil ?? null,
         },
         today,
         365
@@ -442,7 +443,7 @@ export default async function DashboardPage({ searchParams }: {
     where: { programTeachers: { some: { userId } }, programFormat: "in-person", archivedAt: null },
     select: {
       id: true, slug: true, name: true, programFormat: true, startDatetime: true, endDatetime: true,
-      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
       specialAnnouncement: true, announcementUntil: true,
     },
   });

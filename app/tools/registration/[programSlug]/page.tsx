@@ -143,7 +143,7 @@ export default async function RegistrationProgramPage({
       flodeskSync: true,
       flodeskSegmentId: true,
       flodeskSegmentName: true,
-      recurrenceCount: true,
+      recurrenceCount: true, recurrenceUntil: true,
     },
   });
   if (!program) notFound();

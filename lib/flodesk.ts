@@ -150,7 +150,7 @@ const PROGRAM_SELECT = {
   flodeskSegmentId: true,
   startDatetime: true,
   recurrenceFreq: true,
-  recurrenceCount: true,
+  recurrenceCount: true, recurrenceUntil: true,
 } as const;
 
 /**

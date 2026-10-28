@@ -9,6 +9,7 @@ import { answerFor, oldAnswers } from "@/lib/registrationAnswers";
 import { fmtDay, fmtWhen, placesLine, programWhen, registrationState, type DeskCounts } from "@/lib/registrationDesk";
 import { extractBlockNoteText, isHtmlString } from "@/lib/renderRichContent";
 import { redactPrivate } from "@/lib/guideContent";
+import { inListingOrder } from "@/lib/programOrder";
 
 /**
  * What the signed-in RIM Guide reads from RIM's data (2026-10-27), as the
@@ -98,9 +99,9 @@ export async function listPrograms(v: GuideViewer, includeArchived: boolean): Pr
   if (!(await canReadPrograms(v))) return NO_ACCESS("Programs");
   const programs = await db.program.findMany({
     where: includeArchived ? {} : { archivedAt: null },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: { ...DESK_SELECT, programFormat: true, offeringCategory: true, offeringFormat: true },
-  });
+    orderBy: { name: "asc" },
+    select: { ...DESK_SELECT, programFormat: true, offeringCategory: true, offeringFormat: true, recurrenceCount: true, recurrenceUntil: true, listFirst: true },
+  }).then(inListingOrder);
   const seePeople = canUseRegistration(v.roles);
   const counts = seePeople
     ? await db.registration.groupBy({

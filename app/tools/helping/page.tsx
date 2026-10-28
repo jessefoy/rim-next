@@ -58,7 +58,7 @@ export default async function HelpingPage({ searchParams }: { searchParams: Prom
       program: {
         select: {
           id: true, slug: true, name: true, programFormat: true, dateText: true, startDatetime: true, endDatetime: true,
-          recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, archivedAt: true,
+          recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true, archivedAt: true,
         },
       },
     },

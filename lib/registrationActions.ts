@@ -369,6 +369,7 @@ export async function changeRegistration(actor: SaveActor, id: string, body: any
         recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
         recurrenceDays: pgProgram?.recurrenceDays ?? null,
         recurrenceCount: pgProgram?.recurrenceCount ?? null,
+        recurrenceUntil: pgProgram?.recurrenceUntil ?? null,
       });
       icsUrl = buildIcsUrl(reg.programSlug);
     }

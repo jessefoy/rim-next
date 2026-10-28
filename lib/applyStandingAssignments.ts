@@ -61,7 +61,7 @@ const OCC_NUMBER: Partial<Record<StandingOccurrence, number>> = {
 const RULE_PROGRAM_SELECT = {
   startDatetime: true, endDatetime: true,
   recurrenceFreq: true, recurrenceInterval: true,
-  recurrenceDays: true, recurrenceCount: true,
+  recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
 } as const;
 
 /**
@@ -305,7 +305,7 @@ export async function generateCandidates(
       id: true, name: true, slug: true, programFormat: true,
       startDatetime: true, endDatetime: true,
       recurrenceFreq: true, recurrenceInterval: true,
-      recurrenceDays: true, recurrenceCount: true,
+      recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
       hostingRequired: true, hostingHubSlug: true,
     },
   });

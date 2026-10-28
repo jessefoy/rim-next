@@ -3087,6 +3087,24 @@ async function main() {
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "followUpEnabled" BOOLEAN NOT NULL DEFAULT false`);
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "followUpMessage" JSONB`);
   await db.$executeRawUnsafe(`ALTER TABLE "registrations" ADD COLUMN IF NOT EXISTS "followUpSentAt" TIMESTAMP(3)`);
+  // Setting up a program, step by step (2026-10-28, Phase 1): a series that
+  // ends on a date (its last session's Central day, stored at noon UTC), and
+  // a program shown first in its section on Programs & Events (empty: by when
+  // it meets). Additive, no backfill: null keeps every program as it is.
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "recurrenceUntil" TIMESTAMP(3)`);
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "listFirst" INTEGER`);
+  // A program being set up: its answers, until Publish makes it a program.
+  // Not a program, so nothing that lists, schedules or emails programs sees it.
+  await db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "program_drafts" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "createdById" TEXT NOT NULL,
+    "data" JSONB NOT NULL,
+    "shape" TEXT,
+    "copiedFrom" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "program_drafts_updatedAt_idx" ON "program_drafts"("updatedAt")`);
   // Arrived at the door (2026-10-24, Phase 3 slice 4): one row per person per
   // session day, gone with the registration or the program. Additive.
   await db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "registration_attendance" (

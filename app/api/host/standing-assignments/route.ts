@@ -272,7 +272,7 @@ export async function POST(request: Request) {
   if (cycleStart !== null) {
     const program = await db.program.findUnique({
       where: { slug: body.programSlug },
-      select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true },
+      select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true },
     });
     if (!program || !meetsEveryWeek(program)) {
       return Response.json({ error: "Every other week is for programs that meet every week." }, { status: 400 });

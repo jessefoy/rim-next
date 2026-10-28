@@ -36,6 +36,8 @@ export interface UpdateProgram {
   recurrenceInterval: number | null;
   recurrenceDays: string[] | null;
   recurrenceCount: number | null;
+  /** A series that ends on a date (2026-10-28). */
+  recurrenceUntil?: Date | string | null;
   programFormat: string | null;
   /** The place as an email names it (lib/locations.ts emailLocationFor), or null. */
   place: string | null;
@@ -79,7 +81,8 @@ export function changedForPeople(before: UpdateProgram, after: UpdateProgram): U
     (before.recurrenceFreq && after.recurrenceFreq &&
       ((before.recurrenceInterval ?? 1) !== (after.recurrenceInterval ?? 1) ||
         days(before) !== days(after) ||
-        (before.recurrenceCount ?? null) !== (after.recurrenceCount ?? null)))
+        (before.recurrenceCount ?? null) !== (after.recurrenceCount ?? null) ||
+        time(before.recurrenceUntil ?? null) !== time(after.recurrenceUntil ?? null)))
   ) kinds.push("when");
   const inPerson = (p: UpdateProgram) => p.programFormat !== "virtual";
   if (
@@ -112,6 +115,9 @@ export function updateLines(
       }
       if (after.recurrenceCount && after.recurrenceCount !== (before?.recurrenceCount ?? null)) {
         parts.push(`${after.recurrenceCount} sessions`);
+      }
+      if (after.recurrenceUntil && time(after.recurrenceUntil) !== time(before?.recurrenceUntil ?? null)) {
+        parts.push(`through ${new Date(after.recurrenceUntil).toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "long", month: "long", day: "numeric" })}`);
       }
     }
     if (parts.length) lines.when = `When: ${parts.join(", ")}`;

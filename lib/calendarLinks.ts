@@ -1,9 +1,21 @@
 // ─── Calendar link utilities ──────────────────────────────────────────────────
 // Builds Google Calendar URLs and ICS file content for program events.
 // Used by confirmation emails, the program page, and the /api/programs/[slug]/ical route.
+//
+// The calendar says what the site says (2026-10-28): the first session is the
+// first real session, each event lasts one session (a repeating program's
+// end time is on its first day, never its End date), it repeats on the same
+// days the site does (weekly days, the monthly "2nd Wednesday"), and it ends
+// on the series' last session by the site's own rule. Times are Central, so a
+// weekly event keeps its time across the time change.
+
+import { ctDateStr, isOccurrenceOnDate, lastOccurrenceDate, nextOccurrenceOnOrAfter, getDayOfWeekOccurrenceInMonth, getTotalDayOfWeekOccurrencesInMonth, dateToDayCode, shiftToDate, type ScheduleProgram } from "./scheduleUtils";
+import { centralToUtc, toCentralDatetime } from "./timezone";
 
 const BASE_URL =
   (process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app").trim().replace(/\/$/, "");
+
+const TZID = "America/Chicago";
 
 export interface CalendarEvent {
   title: string;
@@ -12,76 +24,95 @@ export interface CalendarEvent {
   location?: string | null;
   programSlug: string;
   // Recurrence — all optional; leave blank for single events
-  recurrenceFreq?: string | null;     // "daily" | "weekly" | "monthly"
+  recurrenceFreq?: string | null;     // "DAILY" | "WEEKLY" | "MONTHLY" (any case)
   recurrenceInterval?: number | null; // every N days/weeks/months — default 1
-  recurrenceDays?: string[] | null;   // BYDAY values for weekly: ["MO","WE","FR"] etc.
-  recurrenceCount?: number | null;    // total sessions including the first; null = ongoing (no end)
+  recurrenceDays?: string[] | null;   // weekly days: ["MO","WE","FR"] etc.
+  recurrenceCount?: number | null;    // total sessions including the first; null = ongoing
+  recurrenceUntil?: string | Date | null; // ends on this Central day (2026-10-28)
 }
 
-/**
- * Build an iCal RRULE line from the event's recurrence fields.
- * Returns null for single-event programs (no recurrence set).
- */
-function buildRRule(ev: CalendarEvent): string | null {
-  const { recurrenceFreq: freq, recurrenceInterval: interval,
-          recurrenceDays: days, recurrenceCount: count } = ev;
-  if (!freq) return null;
-
-  const parts: string[] = [`FREQ=${freq.toUpperCase()}`];
-  if (interval && interval > 1) parts.push(`INTERVAL=${interval}`);
-  if (days && days.length > 0 && freq === "weekly") parts.push(`BYDAY=${days.join(",")}`);
-  // Omit COUNT when null — RFC 5545 interprets this as infinite recurrence
-  if (count && count >= 2) parts.push(`COUNT=${count}`);
-
-  return `RRULE:${parts.join(";")}`;
+interface CalendarTimes {
+  /** Central wall-clock times, "YYYYMMDDTHHMMSS". */
+  start: string;
+  end: string;
+  rrule: string | null;
 }
 
+/** "2026-10-30T19:00" (Central) → "20261030T190000". */
+const localCal = (centralLocal: string) => centralLocal.replace(/[-:]/g, "") + "00";
+
 /**
- * Human-readable labels for the add-to-calendar links.
- * Returns { googleLabel, icsLabel } — both empty strings for single events.
- * Google Calendar URL only shows the first occurrence (no RRULE support in the add-event URL),
- * so googleLabel flags this clearly. The .ics download includes the full RRULE.
+ * The event as a calendar should hold it: the first real session, one
+ * session long, and the rule that repeats it the way the site does.
  */
-export function describeRecurrence(
-  freq?: string | null,
-  interval?: number | null,
-  days?: string[] | null,
-  count?: number | null,
-): { googleLabel: string; icsLabel: string } {
-  if (!freq) return { googleLabel: "", icsLabel: "" };
-  const unit = freq === "daily" ? "days" : "sessions";
+function calendarTimes(ev: CalendarEvent): CalendarTimes {
+  const freq = ev.recurrenceFreq ? ev.recurrenceFreq.toUpperCase() : null;
+  const anchor = new Date(ev.startDatetime);
+  const endIn = ev.endDatetime ? new Date(ev.endDatetime) : null;
+
+  if (!freq) {
+    const end = endIn ?? new Date(anchor.getTime() + 60 * 60 * 1000);
+    return { start: localCal(toCentralDatetime(anchor)), end: localCal(toCentralDatetime(end)), rrule: null };
+  }
+
+  const schedule: ScheduleProgram = {
+    id: "", name: ev.title, slug: ev.programSlug, programFormat: null,
+    startDatetime: anchor, endDatetime: endIn,
+    recurrenceFreq: freq, recurrenceInterval: ev.recurrenceInterval ?? null,
+    recurrenceDays: ev.recurrenceDays ?? [], recurrenceCount: ev.recurrenceCount ?? null,
+    recurrenceUntil: ev.recurrenceUntil ? new Date(ev.recurrenceUntil) : null,
+  };
+  const anchorDay = ctDateStr(anchor.toISOString());
+  // The first real session: the start's day when it is one, else the next.
+  const firstDay = isOccurrenceOnDate(schedule, anchorDay)
+    ? anchorDay
+    : nextOccurrenceOnOrAfter(schedule, anchorDay, 400) ?? anchorDay;
+  const start = shiftToDate(anchor.toISOString(), firstDay);
+  // One session long: the end's time on the first session's day.
+  let end = endIn ? shiftToDate(endIn.toISOString(), firstDay) : new Date(start.getTime() + 60 * 60 * 1000);
+  if (end <= start) end = new Date(start.getTime() + 60 * 60 * 1000);
+
+  const parts = [`FREQ=${freq}`];
+  const interval = ev.recurrenceInterval ?? 1;
+  if (interval > 1) parts.push(`INTERVAL=${interval}`);
+  if (freq === "WEEKLY") {
+    const days = ev.recurrenceDays?.length ? ev.recurrenceDays : [dateToDayCode(anchorDay)];
+    // Weeks run Monday to Sunday, as on the site.
+    parts.push(`BYDAY=${days.join(",")}`, "WKST=MO");
+  }
+  if (freq === "MONTHLY") {
+    const n = getDayOfWeekOccurrenceInMonth(firstDay);
+    const last = n === getTotalDayOfWeekOccurrencesInMonth(firstDay);
+    parts.push(`BYDAY=${last ? "-1" : n}${dateToDayCode(firstDay)}`);
+  }
+  const lastDay = lastOccurrenceDate(schedule);
+  if (lastDay) {
+    // UNTIL is in UTC when the start carries a time zone.
+    const untilUtc = centralToUtc(`${lastDay}T23:59`);
+    if (untilUtc) parts.push(`UNTIL=${untilUtc.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}`);
+  }
   return {
-    googleLabel: freq === "daily" ? "first day only" : "first session",
-    icsLabel:    count && count >= 2 ? `all ${count} ${unit}` : `ongoing`,
+    start: localCal(toCentralDatetime(start)),
+    end: localCal(toCentralDatetime(end)),
+    rrule: `RRULE:${parts.join(";")}`,
   };
 }
 
 /**
- * Convert an ISO 8601 string to the compact iCal / Google Calendar format.
- * Input:  "2026-06-07T18:00:00.000Z"  →  Output: "20260607T180000Z"
- */
-function toCalDT(iso: string): string {
-  return iso.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-}
-
-/**
  * Build a Google Calendar "Add to Calendar" URL.
- * Opens the event creation form with all fields pre-filled.
- * Note: Google Calendar's add-event URL does not support RRULE — it always
- * shows a single event. For recurring programs the label makes this clear.
+ * Opens the event creation form with all fields pre-filled, repeating as the
+ * program does.
  */
 export function buildGoogleCalendarUrl(ev: CalendarEvent): string {
-  const start = toCalDT(ev.startDatetime);
-  const end = ev.endDatetime
-    ? toCalDT(ev.endDatetime)
-    : toCalDT(new Date(new Date(ev.startDatetime).getTime() + 60 * 60 * 1000).toISOString());
-
+  const t = calendarTimes(ev);
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: ev.title,
-    dates: `${start}/${end}`,
+    dates: `${t.start}/${t.end}`,
+    ctz: TZID,
     details: `${BASE_URL}/programs/${ev.programSlug}`,
     ...(ev.location ? { location: ev.location } : {}),
+    ...(t.rrule ? { recur: t.rrule } : {}),
   });
 
   return `https://www.google.com/calendar/render?${params.toString()}`;
@@ -95,25 +126,41 @@ export function buildIcsUrl(programSlug: string): string {
   return `${BASE_URL}/api/programs/${programSlug}/ical`;
 }
 
+/** Central time for calendars that need it spelled out (US rules since 2007). */
+const VTIMEZONE = [
+  "BEGIN:VTIMEZONE",
+  `TZID:${TZID}`,
+  "BEGIN:DAYLIGHT",
+  "TZOFFSETFROM:-0600",
+  "TZOFFSETTO:-0500",
+  "TZNAME:CDT",
+  "DTSTART:19700308T020000",
+  "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU",
+  "END:DAYLIGHT",
+  "BEGIN:STANDARD",
+  "TZOFFSETFROM:-0500",
+  "TZOFFSETTO:-0600",
+  "TZNAME:CST",
+  "DTSTART:19701101T020000",
+  "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU",
+  "END:STANDARD",
+  "END:VTIMEZONE",
+];
+
 /**
  * Build ICS file content for a program event.
  * Returns a string suitable for a text/calendar HTTP response.
- * Includes RRULE for multi-session programs (courses, retreats, series).
+ * Includes the repeat rule for multi-session programs (courses, series).
  */
 export function buildIcsContent(ev: CalendarEvent): string {
-  const uid   = `${ev.programSlug}@rootedinmindfulness.org`;
-  const now   = toCalDT(new Date().toISOString());
-  const start = toCalDT(ev.startDatetime);
-  const end   = ev.endDatetime
-    ? toCalDT(ev.endDatetime)
-    : toCalDT(new Date(new Date(ev.startDatetime).getTime() + 60 * 60 * 1000).toISOString());
+  const uid = `${ev.programSlug}@rootedinmindfulness.org`;
+  const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const t = calendarTimes(ev);
 
   const programUrl = `${BASE_URL}/programs/${ev.programSlug}`;
 
   // iCal special chars: commas and semicolons must be escaped with backslash
   const esc = (s: string) => s.replace(/[,;\\]/g, (c) => "\\" + c);
-
-  const rrule = buildRRule(ev);
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -121,13 +168,13 @@ export function buildIcsContent(ev: CalendarEvent): string {
     "PRODID:-//Rooted In Mindfulness//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
+    ...VTIMEZONE,
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${now}`,
-    `DTSTART:${start}`,
-    `DTEND:${end}`,
-    // RRULE for multi-session programs — null for single events (filtered out below)
-    ...(rrule ? [rrule] : []),
+    `DTSTART;TZID=${TZID}:${t.start}`,
+    `DTEND;TZID=${TZID}:${t.end}`,
+    ...(t.rrule ? [t.rrule] : []),
     `SUMMARY:${esc(ev.title)}`,
     ...(ev.location ? [`LOCATION:${esc(ev.location)}`] : []),
     `URL:${programUrl}`,

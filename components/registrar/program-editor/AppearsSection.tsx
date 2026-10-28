@@ -55,7 +55,6 @@ function AppearsSection({
   offeringFormat, setOfferingFormat,
   silentMeditation, setSilentMeditation,
   hostedByVolunteers, setHostedByVolunteers,
-  sortOrder, setSortOrder,
   hideFromProgramPageList, setHideFromProgramPageList,
   hideFromWeeklySchedule, setHideFromWeeklySchedule,
   hideWhenPast, setHideWhenPast,
@@ -311,16 +310,9 @@ function AppearsSection({
           </p>
         </div>
 
-        <label className="pe-field">
-          <span className="pe-field__label">Sort Order</span>
-          <span className="pe-field__help">Controls the display order on the public Programs page. Lower numbers appear first.</span>
-          <input
-            type="number"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="pe-input pe-input--narrow"
-          />
-        </label>
+        {/* The sort number retired (2026-10-28): each section lists its
+            programs by when they meet (lib/programOrder.ts). */}
+        <p className="pe-field__help">Each section of Programs &amp; Events lists its programs by when they meet.</p>
 
         <hr className="pe-section-divider" />
 

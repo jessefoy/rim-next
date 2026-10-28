@@ -154,7 +154,7 @@ export async function conflictsForProgram(
       recurrenceFreq: true,
       recurrenceInterval: true,
       recurrenceDays: true,
-      recurrenceCount: true,
+      recurrenceCount: true, recurrenceUntil: true,
     },
   })) as ProgramRow[];
 

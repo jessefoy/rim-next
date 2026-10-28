@@ -294,6 +294,9 @@ model Program {
   recurrenceInterval  Int?
   recurrenceDays      String[]         // ["MO","WE","SA"] etc
   recurrenceCount     Int?
+  /// A series that ends on a date (2026-10-28): its last session's Central
+  /// day, at noon UTC. Null = no end date (it goes on, or ends by count).
+  recurrenceUntil     DateTime?
 
   // ── Registration ───────────────────────────────────────
   registrationEnabled  Boolean   @default(false)
@@ -326,7 +329,10 @@ model Program {
   dayOfWeek            String[] // ["MO","TH"] — drives "Today" badge + listing day group
 
   // ── Visibility ─────────────────────────────────────────
-  sortOrder                Int?
+  sortOrder                Int?      // no longer read (2026-10-28): see listFirst
+  /// Shown first in its section on Programs & Events, in this order
+  /// (2026-10-28). Null = in its place by when it meets (lib/programOrder.ts).
+  listFirst                Int?
   removeFromProgramList    Boolean   @default(false)
   dashboardShowAt          DateTime? // if set, auto-shows on dashboards on this date even if removeFromProgramList is true
   hideFromProgramPageList  Boolean   @default(false)
@@ -1099,6 +1105,22 @@ model GuideGrant {
   @@index([familyId])
   @@index([userId])
   @@map("guide_grants")
+}
+
+/// A program being set up (2026-10-28): the walk-through's answers, saved as
+/// the person goes, until Publish makes it a program through createProgram.
+/// Not a program, so nothing that lists, schedules or emails programs sees it.
+model ProgramDraft {
+  id          String   @id @default(cuid())
+  createdById String
+  data        Json
+  shape       String?
+  copiedFrom  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+  @@map("program_drafts")
 }
 
 /// One change to the site's content made through the RIM Guide (2026-10-28,

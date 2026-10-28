@@ -22,7 +22,7 @@ export async function GET(
       recurrenceFreq: true,
       recurrenceInterval: true,
       recurrenceDays: true,
-      recurrenceCount: true,
+      recurrenceCount: true, recurrenceUntil: true,
     },
   });
 
@@ -45,6 +45,7 @@ export async function GET(
     recurrenceInterval: program.recurrenceInterval,
     recurrenceDays: program.recurrenceDays,
     recurrenceCount: program.recurrenceCount,
+    recurrenceUntil: program.recurrenceUntil,
   });
 
   return new NextResponse(ics, {

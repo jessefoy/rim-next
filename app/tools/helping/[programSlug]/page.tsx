@@ -52,7 +52,7 @@ export default async function HelpingProgramPage({
     where: { slug: programSlug },
     select: {
       id: true, slug: true, name: true, dateText: true, startDatetime: true, endDatetime: true,
-      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, programFormat: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true, programFormat: true,
       outsideMeetingUrl: true, hostingHubSlug: true, registrationEnabled: true, registrationFields: true, archivedAt: true,
     },
   });

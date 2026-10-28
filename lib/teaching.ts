@@ -24,7 +24,7 @@ const PROGRAM_SELECT = {
   recurrenceFreq: true,
   recurrenceInterval: true,
   recurrenceDays: true,
-  recurrenceCount: true,
+  recurrenceCount: true, recurrenceUntil: true,
   programFormat: true,
   outsideMeetingUrl: true,
   archivedAt: true,
@@ -43,7 +43,7 @@ export async function canOpenTeachingPage(userId: string, roles: string[] | unde
 type ListedProgram = {
   id: string; name: string; slug: string; programFormat: string | null;
   archivedAt: Date | null; startDatetime: Date | null; endDatetime: Date | null;
-  recurrenceFreq: string | null; recurrenceInterval: number | null; recurrenceDays: string[]; recurrenceCount: number | null;
+  recurrenceFreq: string | null; recurrenceInterval: number | null; recurrenceDays: string[]; recurrenceCount: number | null; recurrenceUntil: Date | null;
 };
 
 /** Current programs: not archived, not a one-time program that is over, and

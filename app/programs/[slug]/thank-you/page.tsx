@@ -63,6 +63,8 @@ export default async function ThankYouPage({
         recurrenceFreq: true,
         recurrenceInterval: true,
         recurrenceDays: true,
+        recurrenceCount: true,
+        recurrenceUntil: true,
       },
     }),
     auth(),
@@ -141,6 +143,11 @@ export default async function ThankYouPage({
         endDatetime: program.endDatetime?.toISOString() ?? null,
         location: loc.emailText ?? null,
         programSlug: program.slug,
+        recurrenceFreq: program.recurrenceFreq,
+        recurrenceInterval: program.recurrenceInterval,
+        recurrenceDays: program.recurrenceDays,
+        recurrenceCount: program.recurrenceCount,
+        recurrenceUntil: program.recurrenceUntil,
       })
     : null;
   const icsUrl = program.startDatetime ? buildIcsUrl(program.slug) : null;

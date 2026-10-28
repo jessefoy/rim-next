@@ -164,7 +164,7 @@ export async function placeOnSession(actor: SaveActor, body: any): Promise<SaveR
     where: { slug: programSlug },
     select: {
       id: true, name: true, slug: true, programFormat: true, startDatetime: true, endDatetime: true,
-      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
     },
   });
   const requested = sessionDate ? new Date(sessionDate) : null;

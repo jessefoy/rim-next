@@ -212,6 +212,8 @@ const POINTERS: { table: string; column: string }[] = [
   // The Registration app's history and notes (2026-10-23).
   { table: "registration_events", column: "actorId" },
   { table: "registration_notes", column: "authorId" },
+  // A program being set up (2026-10-28).
+  { table: "program_drafts", column: "createdById" },
 ];
 
 /** Reactions are { "👍": [userId, …] } lists: the person appears once, as the kept account. */

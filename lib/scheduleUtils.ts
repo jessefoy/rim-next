@@ -130,6 +130,8 @@ export interface ScheduleProgram {
   recurrenceInterval: number | null;
   recurrenceDays: string[];
   recurrenceCount: number | null;
+  /** A series that ends on a date (2026-10-28); null = by count, or ongoing. */
+  recurrenceUntil: Date | null;
 }
 
 /**
@@ -278,37 +280,7 @@ export function lastOccurrenceDate(p: ScheduleProgram): string | null {
   if (!p.startDatetime) return null;
   const anchor = ctDateStr(p.startDatetime.toISOString());
   if (!p.recurrenceFreq) return p.endDatetime ? ctDateStr(p.endDatetime.toISOString()) : anchor;
-  if (!p.recurrenceCount || p.recurrenceCount < 2) return null;
-  // Monthly with a count (2026-10-26): its last session falls in the month
-  // (count - 1) x interval after the start's (an Nth or last weekday is in
-  // every month), so only that month is checked against isOccurrenceOnDate.
-  if (p.recurrenceFreq.toUpperCase() === "MONTHLY") {
-    const [ay, am] = anchor.split("-").map(Number);
-    const months = am - 1 + (p.recurrenceCount - 1) * (p.recurrenceInterval ?? 1);
-    const y = ay + Math.floor(months / 12);
-    const m = (months % 12) + 1;
-    let last: string | null = null;
-    for (let d = 1; d <= 31; d++) {
-      const day = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      if (new Date(day + "T12:00:00Z").getUTCMonth() + 1 !== m) break;
-      if (isOccurrenceOnDate(p, day)) last = day;
-    }
-    return last;
-  }
-  // Weekly, as isOccurrenceOnDate reads a count: only with days ticked (with
-  // none, its bound never ends; review 2026-10-26).
-  if (p.recurrenceFreq.toUpperCase() !== "WEEKLY") return null;
-  if (!p.recurrenceDays || p.recurrenceDays.length === 0) return null;
-  const daysPerCycle = p.recurrenceDays.length;
-  const cycles = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const boundMs = new Date(anchor + "T12:00:00Z").getTime() + cycles * (p.recurrenceInterval ?? 1) * 7 * msPerDay;
-  // Back from the bound to the series' last class.
-  for (let i = 0; i < 7 * (p.recurrenceInterval ?? 1) + 7; i++) {
-    const day = new Date(boundMs - i * msPerDay).toISOString().slice(0, 10);
-    if (isOccurrenceOnDate(p, day)) return day;
-  }
-  return anchor;
+  return seriesEnd(p, anchor);
 }
 
 /** The end of a series' last class day in Central (23:59), or null while it
@@ -330,8 +302,8 @@ export function isOccurrenceOnDate(p: ScheduleProgram, dateStr: string): boolean
   // is the program's genuine end (a single or multi-day offering past its end
   // date no longer occurs). For a RECURRING program, endDatetime is the end
   // TIME of a single occurrence — same calendar day as the anchor — NOT a
-  // series-end date; the series bound is recurrenceCount, applied per-frequency
-  // below. Treating it as a forward cutoff for recurring programs collapses
+  // series-end date; the series ends by its count or recurrenceUntil (seriesEnd,
+  // below). Treating it as a forward cutoff for recurring programs collapses
   // every one of them to its first session, which silently erased recurring
   // offerings from the dashboard "Coming up for you", /this-week, the
   // Scheduler, standing host rotations, and the session-room join gate.
@@ -341,68 +313,87 @@ export function isOccurrenceOnDate(p: ScheduleProgram, dateStr: string): boolean
     return anchor === dateStr;
   }
 
-  const freq = p.recurrenceFreq.toUpperCase();
+  if (!onPattern(p, anchor, dateStr)) return false;
+  // The series' end: its last real session, by count or by date (2026-10-28).
+  const end = seriesEnd(p, anchor);
+  return end === null || dateStr <= end;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayNum = (d: string) => Math.round(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / DAY_MS);
+const fromDayNum = (n: number) => new Date(n * DAY_MS).toISOString().slice(0, 10);
+
+/**
+ * Does the repeating pattern fall on this day, on or after the start (the
+ * series' end aside)? The one test behind every session date (2026-10-28):
+ * - Weekly: a ticked day, in a meeting week. Weeks run Monday to Sunday, as
+ *   on This Week, and are counted from the start's week, so "every other
+ *   week" with several days keeps each week's days together. No day ticked
+ *   means the start's own weekday (it used to mean every day).
+ * - Monthly: the start's weekday and its place in the month ("the 2nd
+ *   Wednesday", "the last Sunday", which stays last in a 5-week month).
+ * - Daily: every day, or every Nth.
+ */
+function onPattern(p: ScheduleProgram, anchor: string, dateStr: string): boolean {
+  if (dateStr < anchor) return false;
+  const freq = (p.recurrenceFreq ?? "").toUpperCase();
+  const n = Math.max(1, p.recurrenceInterval ?? 1);
   if (freq === "WEEKLY") {
-    const days = p.recurrenceDays ?? [];
-    if (days.length > 0 && !days.includes(dateToDayCode(dateStr))) return false;
-    const n = p.recurrenceInterval ?? 1;
-    if (n > 1) {
-      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-      const weeksDiff = Math.round(
-        (new Date(dateStr + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime())
-        / msPerWeek
-      );
-      if (weeksDiff % n !== 0) return false;
-    }
-    if (p.recurrenceCount && p.recurrenceCount >= 2) {
-      const daysPerCycle = p.recurrenceDays?.length ?? 1;
-      const cyclesNeeded = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);
-      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-      // UTC noons: local noons lose an hour across a time change, so in a
-      // Central browser the series' last date fell past the bound and the
-      // Rotations preview dropped it (2026-10-19 audit).
-      const lastMs = new Date(anchor + "T12:00:00Z").getTime()
-        + cyclesNeeded * (p.recurrenceInterval ?? 1) * msPerWeek;
-      if (new Date(dateStr + "T12:00:00Z").getTime() > lastMs) return false;
-    }
-    return true;
+    const days = p.recurrenceDays?.length ? p.recurrenceDays : [dateToDayCode(anchor)];
+    if (!days.includes(dateToDayCode(dateStr))) return false;
+    if (n === 1) return true;
+    const monday = (d: string) => dayNum(d) - ((new Date(d + "T12:00:00Z").getUTCDay() + 6) % 7);
+    return ((monday(dateStr) - monday(anchor)) / 7) % n === 0;
   }
-
-  if (freq === "DAILY") {
-    const n = p.recurrenceInterval ?? 1;
-    if (n > 1) {
-      const msPerDay = 24 * 60 * 60 * 1000;
-      const daysDiff = Math.round(
-        (new Date(dateStr + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime())
-        / msPerDay
-      );
-      if (daysDiff % n !== 0) return false;
-    }
-    return true;
-  }
-
   if (freq === "MONTHLY") {
-    // Monthly = the same weekday-and-position-in-month as the anchor — e.g.
-    // "the last Sunday" or "the 2nd Wednesday" — derived from the start date.
-    // No separate day field; recurrenceDays is unused for MONTHLY.
     if (dateToDayCode(dateStr) !== dateToDayCode(anchor)) return false;
     const anchorOcc = getDayOfWeekOccurrenceInMonth(anchor);
     const anchorIsLast = anchorOcc === getTotalDayOfWeekOccurrencesInMonth(anchor);
     const dateOcc = getDayOfWeekOccurrenceInMonth(dateStr);
     const dateIsLast = dateOcc === getTotalDayOfWeekOccurrencesInMonth(dateStr);
-    // "last" stays last even in 5-occurrence months; otherwise match the Nth.
     if (anchorIsLast ? !dateIsLast : dateOcc !== anchorOcc) return false;
     const [ay, am] = anchor.split("-").map(Number);
     const [dy, dm] = dateStr.split("-").map(Number);
-    const monthsDiff = (dy - ay) * 12 + (dm - am);
-    if (monthsDiff < 0) return false;
-    const n = p.recurrenceInterval ?? 1;
-    if (n > 1 && monthsDiff % n !== 0) return false;
-    if (p.recurrenceCount && p.recurrenceCount >= 2 && monthsDiff > (p.recurrenceCount - 1) * n) {
-      return false;
-    }
-    return true;
+    return ((dy - ay) * 12 + (dm - am)) % n === 0;
   }
+  if (freq === "DAILY") return (dayNum(dateStr) - dayNum(anchor)) % n === 0;
+  return dateStr === anchor;
+}
 
-  return anchor === dateStr;
+/** Series ends already worked out, by everything that decides them. */
+const endCache = new Map<string, string | null>();
+
+/**
+ * The last session of a repeating series, "YYYY-MM-DD" in Central, or null
+ * while it goes on (2026-10-28). By count: the Nth real session from the
+ * start, counted by walking the pattern, so an off-day start or several
+ * ticked days count right (before, the count was turned into weeks, and
+ * "4" with two days ticked gave 5). By date: the last real session on or
+ * before it. Both set: whichever comes first. A count under 2 reads as
+ * ongoing, as it always has.
+ */
+function seriesEnd(p: ScheduleProgram, anchor: string): string | null {
+  const count = p.recurrenceCount && p.recurrenceCount >= 2 ? p.recurrenceCount : null;
+  const until = p.recurrenceUntil ? ctDateStr(new Date(p.recurrenceUntil).toISOString()) : null;
+  if (!count && !until) return null;
+  const key = [anchor, p.recurrenceFreq, p.recurrenceInterval, (p.recurrenceDays ?? []).join(","), count, until].join("|");
+  if (endCache.has(key)) return endCache.get(key)!;
+  let last: string | null = null;
+  let seen = 0;
+  const start = dayNum(anchor);
+  // Ten years is the furthest any series is walked.
+  for (let i = 0; i < 3660; i++) {
+    const d = fromDayNum(start + i);
+    if (until && d > until) break;
+    if (!onPattern(p, anchor, d)) continue;
+    last = d;
+    seen++;
+    if (count && seen >= count) break;
+  }
+  // An end date before the first session leaves nothing: the start's day
+  // stands in, so the series reads as over rather than as going on.
+  const end = last ?? anchor;
+  if (endCache.size > 2000) endCache.clear();
+  endCache.set(key, end);
+  return end;
 }

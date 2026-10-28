@@ -78,6 +78,7 @@ export interface ScheduleProgramSummary {
   recurrenceFreq: string | null;
   recurrenceInterval: number | null;
   recurrenceCount: number | null;
+  recurrenceUntil: string | null;
 }
 
 function nameOf(u: { firstName: string | null; lastName: string | null; preferredName: string | null } | null): string | null {
@@ -115,10 +116,10 @@ export async function buildHubMonthSessions(hubSlug: string, year: number, month
       select: {
         id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
-        recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+        recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
         createdAt: true, hostingHubSlug: true,
       },
-      orderBy: { sortOrder: "asc" },
+      orderBy: { name: "asc" },
     }),
     // An AV row and a hosting row on the same session are separate rows;
     // each team sees only its own.
@@ -239,6 +240,7 @@ export async function buildHubMonthSessions(hubSlug: string, year: number, month
       recurrenceFreq: p.recurrenceFreq ?? null,
       recurrenceInterval: p.recurrenceInterval ?? null,
       recurrenceCount: p.recurrenceCount ?? null,
+      recurrenceUntil: p.recurrenceUntil?.toISOString() ?? null,
     })),
     allowsMultipleAssignments,
   };
