@@ -255,7 +255,7 @@ export default function WhyWePracticePage() {
             <p className="pp-distillation">
               And so we practice together,&amp;nbsp;
               <br />
-              to bring this wakefulness to as many moments as we can,
+              to bring this wakefulness to as many moments as we can,&amp;nbsp;
               <br />
               and to heal, promote, and protect well-being
               <br />
