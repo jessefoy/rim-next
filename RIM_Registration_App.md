@@ -44,6 +44,10 @@ From the read-aloud and the live trials (rulings in `mockups/registration-2026-1
 | `lib/registrationDesk.ts` | One reading of a program for both pages: `registrationState`, `placesLine`, `programNeeds`, `programWhen`. |
 | `lib/registrationEvents.ts` | `recordRegistrationEvent` (best-effort, never fails the change) and `describeRegistrationEvent` (the history sentence). |
 
+## Shared with the RIM Guide (2026-10-28)
+
+Each API's steps live in `lib/registrationActions.ts` (`addPerson`, `changeRegistration`, `deleteRegistration`, `addRegistrationNote`, `messagePeople`, `sendReminderNow`, `saveRegistrationSettings`); the routes check `canUseRegistration` and call them, and the RIM Guide calls the same functions (`lib/guideRegistration.ts`), so a guide action writes the same History, under the person. **Change a step there, never in its route.** The guide asks first before anything that emails (`volunteer-guide/README.md`); if a step starts sending a new email, update its prediction in `lib/guideRegistration.ts` in the same commit.
+
 ## APIs
 
 | Route | Gate | Notes |

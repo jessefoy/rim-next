@@ -9,6 +9,11 @@ import { copyForNew, freeSlug } from "@/lib/programCopy";
 import { isShapeCode, SHAPES, shapeStart } from "@/lib/programShapes";
 import { helpingTeams } from "@/lib/programHelpers";
 import { deriveDayOfWeek, slugify } from "@/lib/programUtils";
+import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { confirmOrAsk } from "@/lib/guideRegistration";
+import { nextReminderRun, nextRunAfter } from "@/lib/reminderSchedule";
+import { followUpDueAt } from "@/lib/followUp";
+import { centralToUtc } from "@/lib/timezone";
 import { saveCourse, saveEmailTemplate, saveLesson, saveTeacherProfile } from "@/lib/contentSaves";
 import { recordContentChange, type ChangedPart, type ContentKind } from "@/lib/contentChanges";
 import { changePageWords, findPageWords, NoGithubError, pageAddress, wordsPattern, type WordsChange } from "@/lib/pageWords";
@@ -26,7 +31,7 @@ import { isBlockNoteJSON } from "@/lib/renderRichContent";
  * (lib/contentChanges.ts). Called by app/api/guide-mcp/[key]/route.ts.
  */
 
-export type EditKind = Exclude<ContentKind, "page">;
+export type EditKind = Exclude<ContentKind, "page" | "registration">;
 
 /** A change to one part, by finding words in it. */
 export type Replacement = { field: string; find: string; replace_with: string };
@@ -385,6 +390,7 @@ export async function editContent(
   changes: Record<string, unknown> | undefined,
   replace: Replacement[] | undefined,
   version?: string,
+  confirm?: string,
 ): Promise<string> {
   if (!["program", "course", "lesson", "email", "teacher"].includes(kind)) return "Change a program, course, lesson, email or teacher.";
   const k = kind as EditKind;
@@ -409,6 +415,13 @@ export async function editContent(
     if (old) return old;
     // The editor's own check too: refused if someone changed these parts meanwhile.
     const _base = Object.fromEntries(Object.keys(edits.body).map((f) => [f, editorFieldValue(before.data, f)]));
+    // Ask first when the change may email anyone (2026-10-28).
+    const emails = [
+      ...(await programChangeEmails(Object.fromEntries(Object.keys(edits.body).map((f) => [f, editorFieldValue(before.data, f)])), edits.body)),
+      ...(await scheduledEmails(before.p as unknown as Record<string, unknown> & { id: string; slug: string }, edits.body)),
+    ];
+    const ask = emails.length ? confirmOrAsk(actor.id, "edit_content", { kind, item, changes, replace, version }, ["This change may send email.", ...emails], confirm) : null;
+    if (ask) return ask;
     const result = await saveProgram(actor, found.slug, { ...edits.body, _base });
     if (result.status !== 200) return refused(result.status, result.body);
     const slugNow = (result.body.slug as string) ?? found.slug;
@@ -641,6 +654,89 @@ function createPayload(data: Record<string, unknown>, name: string, slug: string
   return out;
 }
 
+const teamNames = async (slugs: string[]) => {
+  const hubs = slugs.length ? await db.hub.findMany({ where: { slug: { in: slugs } }, select: { slug: true, name: true } }) : [];
+  return slugs.map((s) => hubs.find((h) => h.slug === s)?.name ?? s);
+};
+const listWords = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+
+/**
+ * Who a new program emails (as createProgram does): the hosting team when it
+ * meets online and needs a host, and each supporting team ticked.
+ */
+async function newProgramEmails(payload: Record<string, unknown>): Promise<string[]> {
+  const online = payload.programFormat === "virtual" || payload.programFormat === "hybrid";
+  const slugs = new Set<string>(Array.isArray(payload.coverageHubSlugs) ? (payload.coverageHubSlugs as string[]) : []);
+  if (online && payload.hostingRequired !== false) slugs.add(typeof payload.hostingHubSlug === "string" && payload.hostingHubSlug ? payload.hostingHubSlug : DEFAULT_HOSTING_HUB_SLUG);
+  if (!slugs.size) return [];
+  return [`This will start the program and email the members of ${listWords(await teamNames([...slugs]))} that there's a new program for them to cover.`];
+}
+
+const SCHEDULE_PARTS = ["startDatetime", "endDatetime", "recurrenceFreq", "recurrenceInterval", "recurrenceDays", "recurrenceCount"];
+
+/**
+ * Who a program change may email (as saveProgram does): a newly ticked
+ * supporting team; the teams and hosts a change of hosting team, "No host
+ * needed" or format moves; the people on sessions a new schedule clears.
+ * "May": the save decides from the schedule as it stands.
+ */
+export async function programChangeEmails(before: Record<string, unknown>, body: Record<string, unknown>): Promise<string[]> {
+  const out: string[] = [];
+  const changed = (k: string) => k in body && !same(body[k], before[k]);
+  if (changed("coverageHubSlugs")) {
+    const was = (before.coverageHubSlugs as string[]) ?? [];
+    const now = (body.coverageHubSlugs as string[]) ?? [];
+    const added = now.filter((h) => !was.includes(h));
+    const removed = was.filter((h) => !now.includes(h));
+    if (added.length) out.push(`It will email the members of ${listWords(await teamNames(added))}, newly supporting it.`);
+    if (removed.length) out.push(`It takes ${listWords(await teamNames(removed))} off it: anyone from ${removed.length === 1 ? "that team" : "those teams"} signed up for its upcoming sessions is taken off and emailed.`);
+  }
+  if (changed("hostingHubSlug") || changed("hostingRequired") || changed("programFormat")) {
+    out.push("It may email the team that now hosts it, and anyone whose upcoming sessions the change takes off (the old hosting or supporting team).");
+  }
+  if (SCHEDULE_PARTS.some(changed)) {
+    out.push("If its days change, sessions on days it no longer meets are cleared and the people scheduled for them are emailed.");
+  }
+  return out;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const whenWords = (d: Date) => d.toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+/**
+ * A change that makes the reminder or the note after go out within a day
+ * (review, 2026-10-28): the morning run emails everyone registered who hasn't
+ * had it. Compared before and after, from the program as stored.
+ */
+export async function scheduledEmails(p: Record<string, unknown> & { id: string; slug: string }, body: Record<string, unknown>): Promise<string[]> {
+  const merged: Record<string, unknown> = { ...p };
+  for (const [k, v] of Object.entries(body)) {
+    if (["startDatetime", "endDatetime", "reminderDate"].includes(k)) merged[k] = typeof v === "string" && v ? centralToUtc(v) : null;
+    else if (k === "reminderDaysBefore") merged[k] = v === "" || v === null || v === undefined ? null : Number(v);
+    else if (k === "recurrenceFreq") merged[k] = v || null;
+    else merged[k] = v;
+  }
+  const now = new Date();
+  const soon = (x: Record<string, unknown>) => {
+    const run = nextReminderRun(x as never, now);
+    return run && run.getTime() - now.getTime() < DAY_MS + 60 * 60 * 1000 ? run : null;
+  };
+  const out: string[] = [];
+  const before = soon(p);
+  const afterRun = soon(merged);
+  const placed = { programSlug: p.slug, status: { in: ["REGISTERED" as const, "APPROVED" as const] } };
+  if (afterRun && (!before || before.getTime() !== afterRun.getTime())) {
+    const n = await db.registration.count({ where: { ...placed, reminderSentAt: null } });
+    if (n) out.push(`It makes the reminder go out ${whenWords(afterRun)}, to the ${n} ${n === 1 ? "person" : "people"} registered who haven't had it.`);
+  }
+  const run = nextRunAfter(now);
+  if (followUpDueAt(merged as never, run) && !followUpDueAt(p as never, run)) {
+    const n = await db.registration.count({ where: { ...placed, followUpSentAt: null } });
+    if (n) out.push(`It makes the note after go out ${whenWords(run)}, to the ${n} ${n === 1 ? "person" : "people"} who had a place.`);
+  }
+  return out;
+}
+
 /**
  * Start a new program as the editor does: blank, from a shape, or as a copy,
  * with any parts set at once, through the editor's own create. For someone
@@ -649,7 +745,7 @@ function createPayload(data: Record<string, unknown>, name: string, slug: string
  */
 export async function startProgram(
   actor: SaveActor & { name: string },
-  input: { name: string; start?: string; copy?: string; changes?: Record<string, unknown> },
+  input: { name: string; start?: string; copy?: string; changes?: Record<string, unknown>; confirm?: string },
 ): Promise<string> {
   const reach = await reachOf(actor);
   const allowed = fieldsFor("program", reach);
@@ -691,7 +787,12 @@ export async function startProgram(
   const taken = new Set((await db.program.findMany({ where: { slug: { startsWith: slugify(name) || "program" } }, select: { slug: true } })).map((p) => p.slug));
   const base = slugify(name) || "program";
   const slug = typeof edits.body.slug === "string" && edits.body.slug ? String(edits.body.slug) : taken.has(base) ? freeSlug(base, taken) : base;
-  const result = await createProgram(actor, createPayload({ ...draft, ...edits.body }, name, slug));
+  const payload = createPayload({ ...draft, ...edits.body }, name, slug);
+  // Ask first when it would email anyone (2026-10-28).
+  const emails = await newProgramEmails(payload);
+  const ask = emails.length ? confirmOrAsk(actor.id, "create_program", input, emails, input.confirm) : null;
+  if (ask) return ask;
+  const result = await createProgram(actor, payload);
   if (result.status !== 201) return `Nothing was made. The editor said: ${typeof result.body.error === "string" ? result.body.error : `it couldn't save (${result.status}).`}`;
 
   const made = result.body as { slug: string; name: string };

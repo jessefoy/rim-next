@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { sendReminderEmail } from "@/lib/email";
-import { emailLocationFor } from "@/lib/locations";
-import { buildDateLabel } from "@/lib/dateLabel";
 import { canUseRegistration } from "@/lib/toolAuth";
-import { recordRegistrationEvent } from "@/lib/registrationEvents";
+import { sendReminderNow } from "@/lib/registrationActions";
 
 // ─── POST /api/programs/[slug]/send-reminder ──────────────────────────────────
 // Sends the program reminder email to all active registrants who haven't
@@ -23,56 +19,7 @@ export async function POST(
 
   const { slug } = await params;
 
-  // Fetch program details from Postgres
-  const pgProgram = await db.program.findUnique({ where: { slug } });
-
-  // Find all active registrants who haven't received the reminder yet
-  const registrations = await db.registration.findMany({
-    where: {
-      programSlug: slug,
-      status: { in: ["REGISTERED", "APPROVED"] },
-      reminderSentAt: null,
-    },
-  });
-
-  const now = new Date();
-  const loc = emailLocationFor(pgProgram ?? {});
-  const startIso = pgProgram?.startDatetime?.toISOString() ?? null;
-  const endIso = pgProgram?.endDatetime?.toISOString() ?? null;
-
-  for (const reg of registrations) {
-    await sendReminderEmail({
-      to:           reg.email,
-      firstName:    reg.firstName,
-      programTitle: reg.programTitle,
-      programSlug:  reg.programSlug,
-      dateText:     pgProgram?.dateText || buildDateLabel({
-        startDatetime: startIso,
-        endDatetime: endIso,
-        recurrenceFreq: pgProgram?.recurrenceFreq ?? null,
-        recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
-        recurrenceDays: pgProgram?.recurrenceDays ?? null,
-      }),
-      timeText: pgProgram?.timeText ?? null,
-      locationText: loc.emailText,
-      locationLink: loc.link,
-      reminderMessage: pgProgram?.reminderMessage,
-    });
-    await db.registration.update({
-      where: { id: reg.id },
-      data: { reminderSentAt: now },
-    });
-  }
-
-  if (registrations.length > 0) {
-    await recordRegistrationEvent({
-      kind: "reminders-sent",
-      programId: pgProgram?.id ?? null,
-      programSlug: slug,
-      actorId: session.user.id,
-      detail: { count: registrations.length, registrationIds: registrations.map((r) => r.id) },
-    });
-  }
-
-  return NextResponse.json({ sent: registrations.length });
+  // The step itself (lib/registrationActions.ts) is shared with the RIM Guide.
+  const result = await sendReminderNow({ id: session.user.id, roles: session.user.roles ?? [] }, slug);
+  return NextResponse.json(result.body, { status: result.status });
 }

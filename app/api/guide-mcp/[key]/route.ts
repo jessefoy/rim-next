@@ -27,6 +27,7 @@ import {
   viewerCan,
   type GuideViewer,
 } from "@/lib/guideData";
+import { registrationAdd, registrationChange, registrationMessage, registrationNote, registrationReminder, registrationRemove, registrationSettings } from "@/lib/guideRegistration";
 import { archiveProgram, canEditAny, changeWords, editContent, findWords, reachOf, readContent, startProgram, type Replacement } from "@/lib/guideEdits";
 
 /**
@@ -50,9 +51,10 @@ import { archiveProgram, canEditAny, changeWords, editContent, findWords, reachO
  * there is no event stream (GET is 405) and no session.
  */
 
-// A program saved through the guide sends the same team emails after the
-// response as the editor's save, which needs this much room (2026-10-28).
-export const maxDuration = 60;
+// Saves send their emails after the response, as the site's routes do: a
+// program's team emails, and Message people one at a time to up to 50 people
+// (as POST /api/programs/[slug]/message allows; 2026-10-28).
+export const maxDuration = 300;
 
 const PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
@@ -197,6 +199,7 @@ const REGISTRY_TOOLS: Tool[] = [
   },
 ];
 
+const CONFIRM = { type: "string", description: "Only after the person said yes to what the first answer described: the confirm text that answer gave." };
 const WRITES = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 const KIND = { type: "string", enum: ["program", "course", "lesson", "email", "teacher"], description: "What kind of thing." };
 
@@ -216,7 +219,7 @@ const EDIT_TOOLS: Tool[] = [
   {
     name: "edit_content",
     title: "Change content",
-    description: "Changes a program, course, lesson, email or teacher page through its editor's own save, so it does exactly what saving in the editor does (a program's new name reaches its registrations, donations and Zoom meetings; a schedule change clears sessions on days it no longer meets). Give `replace` to change some words inside a part, or `changes` (with the version read_content gave) to set whole parts, by the names read_content shows. The sign-in emails can't be changed. Before calling it, show the person the change, before and after, and wait for their yes. Every change is recorded and emailed to Jesse.",
+    description: "Changes a program, course, lesson, email or teacher page through its editor's own save, so it does exactly what saving in the editor does (a program's new name reaches its registrations, donations and Zoom meetings; a schedule change clears sessions on days it no longer meets). Give `replace` to change some words inside a part, or `changes` (with the version read_content gave) to set whole parts, by the names read_content shows. The sign-in emails can't be changed. Before calling it, show the person the change, before and after, and wait for their yes. A program change that may email teams or hosts asks first: the first call does nothing and says who may be emailed; only after their yes call again with the confirm text it gave. Every change is recorded and emailed to Jesse.",
     inputSchema: obj(
       {
         kind: KIND,
@@ -228,6 +231,7 @@ const EDIT_TOOLS: Tool[] = [
         },
         changes: { type: "object", description: "Whole parts to set, by name: { \"tagline\": \"…\" }. Rich text is HTML. Values take the forms read_content shows (dates as YYYY-MM-DDTHH:MM, Central time; teachers by name). Needs version." },
         version: s("With changes: the version read_content gave, so nothing saved since is overwritten."),
+        confirm: CONFIRM,
       },
       ["kind", "item"],
     ),
@@ -240,13 +244,14 @@ const START_TOOLS: Tool[] = [
   {
     name: "create_program",
     title: "Start a new program",
-    description: `Starts a new program as the program editor does: blank, from a shape, or as a copy of another program, with any parts set at once (the names program_settings and read_content show; rich text is HTML). It goes through the editor's own create, so its team hears about it as from the editor. A category is required: offeringCategory, one of ${OFFERING_CATEGORIES.map((c) => `${c.code} (${c.label})`).join(", ")}; Dates and times are YYYY-MM-DDTHH:MM in Central time (startDatetime, endDatetime and the rest); teachers (teacherIds) are given by name. A shape sets the format (offeringFormat, one of ${OFFERING_FORMATS.map((f) => f.code).join(", ")}). Before calling it, show the person what you will make and wait for their yes; afterwards read it back with program_settings and fill in the rest with edit_content. Every change is recorded and emailed to Jesse.`,
+    description: `Starts a new program as the program editor does: blank, from a shape, or as a copy of another program, with any parts set at once (the names program_settings and read_content show; rich text is HTML). It goes through the editor's own create, so its team hears about it as from the editor. A category is required: offeringCategory, one of ${OFFERING_CATEGORIES.map((c) => `${c.code} (${c.label})`).join(", ")}; Dates and times are YYYY-MM-DDTHH:MM in Central time (startDatetime, endDatetime and the rest); teachers (teacherIds) are given by name. A shape sets the format (offeringFormat, one of ${OFFERING_FORMATS.map((f) => f.code).join(", ")}). Before calling it, show the person what you will make and wait for their yes. If it would email its teams, the first call does nothing and says who; only after their yes call again with the confirm text it gave. Afterwards read it back with program_settings and fill in the rest with edit_content. Every change is recorded and emailed to Jesse.`,
     inputSchema: obj(
       {
         name: s("The program's name."),
         start: s("Optional: \"blank\" (the default), or a shape: DROP_IN, CLASS, COURSE, WORKSHOP, DAY_OF_MINDFULNESS or RETREAT."),
         copy: s("Optional: a program's name or web address, to start as a copy of it (new dates are then needed)."),
         changes: { type: "object", description: "Optional: parts to set at once, by name, such as { \"tagline\": \"…\", \"offeringCategory\": \"…\" }." },
+        confirm: CONFIRM,
       },
       ["name"],
     ),
@@ -261,6 +266,105 @@ const ARCHIVE_TOOLS: Tool[] = [
     title: "Archive or restore a program",
     description: "Archives a program, or restores an archived one, as Programs' Archive does. Before calling it, say which program and wait for their yes. Recorded and emailed to Jesse.",
     inputSchema: obj({ program: s("The program's name or web address."), restore: { type: "boolean", description: "True to restore an archived program." } }, ["program"]),
+    annotations: WRITES,
+  },
+];
+
+const PROGRAM_ARG = s("The program's name or web address.");
+const PERSON_ARG = s("The person's name or email, as program_people shows them.");
+
+/** The Registration app's actions, for those who may open it (lib/guideRegistration.ts). */
+const REGISTRATION_ACTION_TOOLS: Tool[] = [
+  {
+    name: "registration_add",
+    title: "Add someone to a program",
+    description: "Adds someone who signed up by phone, in person or on paper, as Registration's Add someone does: a place (or the waiting list when full), how they gave dana, and their confirmation. If it would email anyone, the first call does nothing and says who would be emailed; tell the person, and only after their yes call again with the confirm text it gave.",
+    inputSchema: obj(
+      {
+        program: PROGRAM_ARG,
+        firstName: s("Their first name."),
+        lastName: s("Their last name."),
+        email: s("Their email."),
+        phone: s("Optional: their phone."),
+        dana: { type: "string", enum: ["given", "none", "online"], description: "How they give dana, when the program asks for it: given another way (cash or check), none, or online (they're emailed the link)." },
+        sendConfirmation: { type: "boolean", description: "False to send them no confirmation (the app's unticked box). Default true." },
+        answers: { type: "object", description: "Optional: their answers, by each question's exact wording." },
+        confirm: CONFIRM,
+      },
+      ["program", "firstName", "lastName", "email"],
+    ),
+    annotations: WRITES,
+  },
+  {
+    name: "registration_change",
+    title: "Change someone's registration",
+    description: "One change to one person's registration, as the buttons on their card do: move_off_waiting_list, cancel (emailThem false to not email them), restore, dana_given (given another way), dana_none, resend_confirmation, send_dana_link, send_edit_link, send_reminder, or answers (with answers by each question's wording). Anything that would email asks first: the first call does nothing and says who would be emailed; only after their yes call again with the confirm text it gave.",
+    inputSchema: obj(
+      {
+        program: PROGRAM_ARG,
+        person: PERSON_ARG,
+        change: { type: "string", enum: ["move_off_waiting_list", "cancel", "restore", "dana_given", "dana_none", "resend_confirmation", "send_dana_link", "send_edit_link", "send_reminder", "answers"] },
+        emailThem: { type: "boolean", description: "With cancel: false to not email them. Default true." },
+        answers: { type: "object", description: "With answers: the changed answers, by each question's exact wording." },
+        confirm: CONFIRM,
+      },
+      ["program", "person", "change"],
+    ),
+    annotations: WRITES,
+  },
+  {
+    name: "registration_remove",
+    title: "Remove a cancelled registration",
+    description: "Removes a cancelled registration for good, as the app's Delete does (its History stays). It can't be undone, so the first call only says what would happen; after their yes, call again with the confirm text it gave.",
+    inputSchema: obj({ program: PROGRAM_ARG, person: PERSON_ARG, confirm: CONFIRM }, ["program", "person"]),
+    annotations: { ...WRITES, destructiveHint: true },
+  },
+  {
+    name: "registration_note",
+    title: "Add a note to someone's registration",
+    description: "Adds a note to a person's registration, with their name and the date, as the app does. Emails no one. Show the note first and wait for their yes.",
+    inputSchema: obj({ program: PROGRAM_ARG, person: PERSON_ARG, note: s("The note, up to 4000 characters.") }, ["program", "person", "note"]),
+    annotations: WRITES,
+  },
+  {
+    name: "message_people",
+    title: "Message the people in a program",
+    description: "Emails the people registered, waiting, or both, as Registration's Message people does (up to 50 people; replies go to the registrar's inbox). test: true sends a copy only to the person you're helping. Otherwise the first call does nothing and says how many would be emailed and what; only after their yes call again with the confirm text it gave.",
+    inputSchema: obj(
+      {
+        program: PROGRAM_ARG,
+        to: { type: "string", enum: ["registered", "waiting", "both"], description: "Who: registered (the default), waiting, or both." },
+        subject: s("The subject."),
+        message: s("The message, as plain text."),
+        test: { type: "boolean", description: "True to send a test copy only to the person you're helping." },
+        confirm: CONFIRM,
+      },
+      ["program", "subject", "message"],
+    ),
+    annotations: { ...WRITES, openWorldHint: true },
+  },
+  {
+    name: "send_reminder",
+    title: "Send the reminder now",
+    description: "Sends the program's reminder now to everyone registered who hasn't had it, as the app's Send the reminder now does. The first call does nothing and says how many would be emailed; only after their yes call again with the confirm text it gave.",
+    inputSchema: obj({ program: PROGRAM_ARG, confirm: CONFIRM }, ["program"]),
+    annotations: WRITES,
+  },
+  {
+    name: "registration_settings",
+    title: "Open, close or schedule registration",
+    description: "Registration's settings for a program: state open, not_yet (with opensAt) or closed; closesAt; places (a number, or null for no limit); mailingList automatic, on or off. Emails no one. Dates are YYYY-MM-DDTHH:MM in Central time. Show the change first and wait for their yes.",
+    inputSchema: obj(
+      {
+        program: PROGRAM_ARG,
+        state: { type: "string", enum: ["open", "not_yet", "closed"] },
+        opensAt: s("With not_yet: when it opens."),
+        closesAt: s("When registration closes, or empty for no closing date."),
+        places: { type: "number", description: "The number of places (null for no limit)." },
+        mailingList: { type: "string", enum: ["automatic", "on", "off"] },
+      },
+      ["program"],
+    ),
     annotations: WRITES,
   },
 ];
@@ -294,7 +398,7 @@ async function toolsFor(v: GuideViewer): Promise<Tool[]> {
   return [
     ...OPEN_TOOLS,
     ...((await viewerCan.programs(v)) ? PROGRAM_TOOLS : []),
-    ...(viewerCan.registration(v) ? REGISTRATION_TOOLS : []),
+    ...(viewerCan.registration(v) ? [...REGISTRATION_TOOLS, ...REGISTRATION_ACTION_TOOLS] : []),
     ...(viewerCan.emails(v) ? EMAIL_TOOLS : []),
     ...(viewerCan.registry(v) ? REGISTRY_TOOLS : []),
     ...(canEditAny(reach) ? EDIT_TOOLS : []),
@@ -311,6 +415,10 @@ const str = (v: unknown) => (typeof v === "string" ? v : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 
 type Viewer = GuideViewer & { name: string };
+
+/** The person, as the guide acts for them. */
+const me = (v: Viewer) => ({ id: v.userId, roles: v.roles, name: v.name });
+const obj2 = (x: unknown) => (x && typeof x === "object" && !Array.isArray(x) ? (x as Record<string, unknown>) : undefined);
 
 async function callTool(name: string, args: Record<string, unknown>, v: Viewer) {
   switch (name) {
@@ -361,14 +469,45 @@ async function callTool(name: string, args: Record<string, unknown>, v: Viewer) 
     case "edit_content": {
       const changes = args.changes && typeof args.changes === "object" && !Array.isArray(args.changes) ? (args.changes as Record<string, unknown>) : undefined;
       const replace = Array.isArray(args.replace) ? (args.replace as Replacement[]) : undefined;
-      return text(await editContent({ id: v.userId, roles: v.roles, name: v.name }, str(args.kind), str(args.item), changes, replace, str(args.version) || undefined));
+      return text(await editContent({ id: v.userId, roles: v.roles, name: v.name }, str(args.kind), str(args.item), changes, replace, str(args.version) || undefined, (str(args.confirm) || undefined)));
     }
     case "create_program": {
       const changes = args.changes && typeof args.changes === "object" && !Array.isArray(args.changes) ? (args.changes as Record<string, unknown>) : undefined;
-      return text(await startProgram({ id: v.userId, roles: v.roles, name: v.name }, { name: str(args.name), start: str(args.start) || undefined, copy: str(args.copy) || undefined, changes }));
+      return text(await startProgram({ id: v.userId, roles: v.roles, name: v.name }, { name: str(args.name), start: str(args.start) || undefined, copy: str(args.copy) || undefined, changes, confirm: (str(args.confirm) || undefined) }));
     }
     case "archive_program":
       return text(await archiveProgram({ id: v.userId, roles: v.roles, name: v.name }, str(args.program), args.restore !== true));
+    case "registration_add":
+      return text(await registrationAdd(me(v), {
+        program: str(args.program), firstName: str(args.firstName), lastName: str(args.lastName), email: str(args.email),
+        phone: str(args.phone) || undefined, dana: str(args.dana) || undefined,
+        sendConfirmation: args.sendConfirmation !== false, answers: obj2(args.answers), confirm: (str(args.confirm) || undefined),
+      }));
+    case "registration_change":
+      return text(await registrationChange(me(v), {
+        program: str(args.program), person: str(args.person), change: str(args.change),
+        emailThem: args.emailThem !== false, answers: obj2(args.answers), confirm: (str(args.confirm) || undefined),
+      }));
+    case "registration_remove":
+      return text(await registrationRemove(me(v), { program: str(args.program), person: str(args.person), confirm: (str(args.confirm) || undefined) }));
+    case "registration_note":
+      return text(await registrationNote(me(v), { program: str(args.program), person: str(args.person), note: str(args.note) }));
+    case "message_people":
+      return text(await registrationMessage(me(v), {
+        program: str(args.program), to: str(args.to) || undefined, subject: str(args.subject), message: str(args.message),
+        test: args.test === true, confirm: (str(args.confirm) || undefined),
+      }));
+    case "send_reminder":
+      return text(await registrationReminder(me(v), { program: str(args.program), confirm: (str(args.confirm) || undefined) }));
+    case "registration_settings":
+      return text(await registrationSettings(me(v), {
+        program: str(args.program),
+        state: str(args.state) || undefined,
+        opensAt: str(args.opensAt) || undefined,
+        closesAt: args.closesAt === undefined ? undefined : str(args.closesAt) || null,
+        places: args.places === undefined ? undefined : num(args.places) ?? null,
+        mailingList: str(args.mailingList) || undefined,
+      }));
     case "find_page_words":
       return text(await findWords(str(args.words)));
     case "change_page_words": {
