@@ -48,11 +48,11 @@ export default async function ProgramToolPage({ params }: { params: Promise<{ pr
     : null;
   if (!program) {
     return (
-      <div className="ps-page">
-        <div className="ps-head">
+      <div className="psu-page">
+        <div className="psu-head">
           <Link href="/tools/programs" className="app-back">&larr; Programs</Link>
           <h1>This program isn&rsquo;t here</h1>
-          <p className="ps-state">Its address may have changed. The Programs list has every program.</p>
+          <p className="psu-state">Its address may have changed. The Programs list has every program.</p>
         </div>
       </div>
     );

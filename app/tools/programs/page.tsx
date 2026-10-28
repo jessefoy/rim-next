@@ -128,9 +128,9 @@ export default async function ProgramsToolPage() {
           <p className="vol-header__sub"><Link className="app-act" href="/tools/programs/order">How each section of Programs &amp; Events is ordered</Link></p>
         </header>
         {drafts.length > 0 && (
-          <section className="ps-drafts" aria-labelledby="ps-drafts-title">
-            <h2 id="ps-drafts-title" className="ps-drafts__title">Being set up</h2>
-            <ul className="ps-drafts__list">
+          <section className="psu-drafts" aria-labelledby="psu-drafts-title">
+            <h2 id="psu-drafts-title" className="psu-drafts__title">Being set up</h2>
+            <ul className="psu-drafts__list">
               {drafts.map((d) => (
                 <li key={d.id}>
                   <span>{(d.data as { name?: string }).name?.trim() || "A new program"}</span>

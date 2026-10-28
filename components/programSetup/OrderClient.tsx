@@ -6,7 +6,7 @@
  * first can move up and down among themselves; everything else takes its
  * place by when it meets (lib/programOrder.ts). Saved as one list.
  *
- * CSS prefix: ps-
+ * CSS prefix: psu- (ps- is the Scheduler's staffing page)
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -51,37 +51,37 @@ export default function OrderClient({ sections }: { sections: Section[] }) {
   };
 
   return (
-    <div className="ps-page">
-      <div className="ps-head">
+    <div className="psu-page">
+      <div className="psu-head">
         <Link href="/tools/programs" className="app-back">&larr; Programs</Link>
         <h1>How each section is ordered</h1>
-        <p className="ps-state">
+        <p className="psu-state">
           Each section of Programs &amp; Events lists what goes on by its day of the week (Monday first) and time, then what has an end by its first session.
           A program shown first leads its section. The Kalyana Mitta groups page lists Community Groups the same way.
         </p>
-        <p className="ps-state" role="status" aria-live="polite">
+        <p className="psu-state" role="status" aria-live="polite">
           {state === "saving" ? "Saving…" : state === "saved" ? "Saved. Programs & Events shows this order now." : state === "failed" ? "It wasn't saved. Check your connection and try again." : ""}
         </p>
       </div>
-      <div className="ps-review">
+      <div className="psu-review">
         {sections.map((s) => {
           const pinned = first.filter((slug) => s.programs.some((p) => p.slug === slug));
           const rest = s.programs.filter((p) => !first.includes(p.slug));
           const ordered = [...pinned.map((slug) => s.programs.find((p) => p.slug === slug)!), ...rest];
           return (
-            <section key={s.code} className="ps-card" aria-labelledby={`ord-${s.code}`}>
-              <div className="ps-card__head"><h2 id={`ord-${s.code}`}>{s.title}</h2></div>
-              <ol className="ps-order">
+            <section key={s.code} className="psu-card" aria-labelledby={`ord-${s.code}`}>
+              <div className="psu-card__head"><h2 id={`ord-${s.code}`}>{s.title}</h2></div>
+              <ol className="psu-order">
                 {ordered.map((p) => {
                   const isFirst = first.includes(p.slug);
                   const i = pinned.indexOf(p.slug);
                   return (
-                    <li key={p.slug} className="ps-order__row">
-                      <span className="ps-order__name">
+                    <li key={p.slug} className="psu-order__row">
+                      <span className="psu-order__name">
                         {p.name}
-                        <span className="ps-hint">{[p.when, isFirst ? "shown first" : ""].filter(Boolean).join(" · ")}</span>
+                        <span className="psu-hint">{[p.when, isFirst ? "shown first" : ""].filter(Boolean).join(" · ")}</span>
                       </span>
-                      <span className="ps-order__acts" aria-busy={state === "saving"}>
+                      <span className="psu-order__acts" aria-busy={state === "saving"}>
                         {isFirst && i > 0 && <button type="button" className="app-act" onClick={() => move(p.slug, -1, pinned)} aria-label={`Move ${p.name} up`}>Move up</button>}
                         {isFirst && i < pinned.length - 1 && <button type="button" className="app-act" onClick={() => move(p.slug, 1, pinned)} aria-label={`Move ${p.name} down`}>Move down</button>}
                         {isFirst

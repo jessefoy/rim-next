@@ -8,7 +8,7 @@
  * link, the notes a save leaves and Tell the people registered live here, as
  * they did on the one-page editor this replaces.
  *
- * CSS prefix: ps-
+ * CSS prefix: psu- (ps- is the Scheduler's staffing page)
  */
 
 import { useEffect, useState } from "react";
@@ -156,20 +156,20 @@ export default function ProgramPage({ data: given, teams, canDecideAskers, canMa
   }
 
   return (
-    <div className="ps-page">
-      <div className="ps-head">
+    <div className="psu-page">
+      <div className="psu-head">
         <Link href="/tools/programs" className="app-back">&larr; Programs</Link>
         <h1>{data.name}</h1>
-        <p className="ps-state">
+        <p className="psu-state">
           <strong>{archived ? "Archived" : "Published"}</strong>
           {" · "}{onCatalog ? "on Programs & Events" : "not on Programs & Events"}{onWeek ? " and This Week" : ""}
           {registeredCount != null ? ` · ${registeredCount === 1 ? "1 person" : `${registeredCount} people`} registered` : ""}
         </p>
       </div>
 
-      {said && <div className="ps-done" role="status"><p><strong>{said}</strong></p><p>Each part below has its own Change. Nothing changes until you&rsquo;ve seen what it does.</p></div>}
+      {said && <div className="psu-done" role="status"><p><strong>{said}</strong></p><p>Each part below has its own Change. Nothing changes until you&rsquo;ve seen what it does.</p></div>}
       {cleared && (cleared.sessions > 0 || cleared.rotations > 0) && (
-        <div className="ps-note ps-note--look" role="status">
+        <div className="psu-note psu-note--look" role="status">
           <p>
             It now meets on a different schedule.{" "}
             {cleared.sessions > 0 && <>{cleared.sessions} upcoming {cleared.sessions === 1 ? "session" : "sessions"} on days it no longer meets {cleared.sessions === 1 ? "was" : "were"} cleared, and the people on them are emailed. </>}
@@ -178,12 +178,12 @@ export default function ProgramPage({ data: given, teams, canDecideAskers, canMa
         </div>
       )}
       {notRenamed > 0 && (
-        <div className="ps-note ps-note--look" role="status">
+        <div className="psu-note psu-note--look" role="status">
           <p>The new name is saved. Zoom didn&rsquo;t take it yet for {notRenamed === 1 ? "the session already set up" : `the ${notRenamed} sessions already set up`}, so {notRenamed === 1 ? "it is" : "they are"} given the new name when the session opens.</p>
         </div>
       )}
       {seatConflicts.length > 0 && (
-        <div className="ps-note ps-note--look" role="status">
+        <div className="psu-note psu-note--look" role="status">
           <p><strong>This overlaps other online sessions on Zoom.</strong></p>
           {seatConflicts.map((c, i) => <p key={i}>{c.message}</p>)}
           <p>It&rsquo;s saved. If these need to run at the same time, move one of them, or ask an administrator about adding a Zoom room. Otherwise, people joining the later one will find no room free.</p>
@@ -191,9 +191,9 @@ export default function ProgramPage({ data: given, teams, canDecideAskers, canMa
         </div>
       )}
       {offer && <UpdatePanel slug={offer.slug} offer={offer} onDone={(a) => { setOffer(null); setOfferAnswer(a ?? ""); }} />}
-      {offerAnswer && <p className="ps-done" role="status">{offerAnswer}</p>}
+      {offerAnswer && <p className="psu-done" role="status">{offerAnswer}</p>}
 
-      <div className="ps-row ps-page-acts">
+      <div className="psu-row psu-page-acts">
         <a className="app-act" href={`/programs/${data.slug}`} target="_blank" rel="noreferrer">View its page &#8599;</a>
         {registeredCount != null && <Link className="app-act" href={`/tools/registration/${data.slug}`}>People</Link>}
       </div>
@@ -210,47 +210,47 @@ export default function ProgramPage({ data: given, teams, canDecideAskers, canMa
       )}
 
       {missing.length > 0 && (
-        <div className="ps-note ps-note--look" role="status">
+        <div className="psu-note psu-note--look" role="status">
           <p><strong>Worth a look:</strong></p>
           {missing.map((m) => (
             <p key={m.step.id}>
-              <button type="button" className="ps-inline" onClick={() => setEditing(m.step.sec)}>{m.need}</button>
+              <button type="button" className="psu-inline" onClick={() => setEditing(m.step.sec)}>{m.need}</button>
             </p>
           ))}
         </div>
       )}
 
-      <div className="ps-review">
+      <div className="psu-review">
         {SETUP_SECTIONS.map((sec) => {
           if (!liveSteps(data, sec.id).length) return null;
           return (
-            <section key={sec.id} className="ps-card" aria-labelledby={`pp-${sec.id}`}>
-              <div className="ps-card__head">
+            <section key={sec.id} className="psu-card" aria-labelledby={`pp-${sec.id}`}>
+              <div className="psu-card__head">
                 <h2 id={`pp-${sec.id}`}>{sec.name}</h2>
-                <button type="button" className="ps-card__change" onClick={() => { setEditing(sec.id); window.scrollTo({ top: 0 }); }} aria-label={`Change ${sec.name}`}>Change</button>
+                <button type="button" className="psu-card__change" onClick={() => { setEditing(sec.id); window.scrollTo({ top: 0 }); }} aria-label={`Change ${sec.name}`}>Change</button>
               </div>
-              <div className="ps-card__body">
+              <div className="psu-card__body">
                 <SectionSays d={data} section={sec.id} />
                 {sec.id === "join" && data.isOpenAccess && (
-                  <div className="ps-guest">
-                    <p className="ps-label">The guest link</p>
+                  <div className="psu-guest">
+                    <p className="psu-label">The guest link</p>
                     {guestUrl ? (
                       <>
-                        <p className="ps-guest__url">{guestUrl}</p>
-                        <div className="ps-row">
+                        <p className="psu-guest__url">{guestUrl}</p>
+                        <div className="psu-row">
                           <button type="button" className="app-act" onClick={() => { navigator.clipboard?.writeText(guestUrl).then(() => setCopied(true)); }}>{copied ? "Copied" : "Copy the link"}</button>
                           {canManage && resetting !== "ask" && <button type="button" className="app-act" onClick={() => setResetting("ask")}>Reset the link</button>}
                         </div>
                         {resetting === "ask" && (
-                          <div className="ps-confirm" role="group" aria-label="Reset the guest link?">
+                          <div className="psu-confirm" role="group" aria-label="Reset the guest link?">
                             Reset it? The old link stops working right away, so anyone you shared it with will need the new one.
                             <button type="button" className="pe-btn pe-btn--primary" onClick={resetGuest}>Yes, reset the link</button>
                             <button type="button" className="app-act" onClick={() => setResetting(null)}>Cancel</button>
                           </div>
                         )}
                       </>
-                    ) : <p className="ps-hint">The link is made when the program is saved with guests on.</p>}
-                    {guestNote && <p className="ps-hint" role="status">{guestNote}</p>}
+                    ) : <p className="psu-hint">The link is made when the program is saved with guests on.</p>}
+                    {guestNote && <p className="psu-hint" role="status">{guestNote}</p>}
                   </div>
                 )}
               </div>

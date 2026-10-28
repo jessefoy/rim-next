@@ -38,11 +38,11 @@ export default async function DraftPage({ params }: { params: Promise<{ id: stri
   const draft = await db.programDraft.findUnique({ where: { id } });
   if (!draft) {
     return (
-      <div className="ps-page">
-        <div className="ps-head">
+      <div className="psu-page">
+        <div className="psu-head">
           <Link href="/tools/programs" className="app-back">&larr; Programs</Link>
           <h1>This draft isn&rsquo;t here any more</h1>
-          <p className="ps-state">It may have been published or discarded. Published programs are in the Programs list.</p>
+          <p className="psu-state">It may have been published or discarded. Published programs are in the Programs list.</p>
         </div>
       </div>
     );
