@@ -11,9 +11,14 @@
     "files": ["app/tools/programs/[programSlug]/edit/page.tsx", "components/registrar/ProgramEditor.tsx", "components/registrar/program-editor/", "components/SlugField.tsx"]
   },
   "new-program": {
-    "title": "Programs: starting a new program",
+    "title": "Programs: starting a new program (shapes, copies, drafts being set up)",
     "where": "/tools/programs/new",
-    "files": ["app/tools/programs/new/page.tsx"]
+    "files": ["app/tools/programs/new/page.tsx", "app/tools/programs/new/actions.ts"]
+  },
+  "program-setup": {
+    "title": "Programs: setting up a program, step by step (the walk-through, your answers so far, the review and Publish)",
+    "where": "/tools/programs/drafts/<draft>",
+    "files": ["app/tools/programs/drafts/[id]/page.tsx", "components/programSetup/", "lib/programSetup.ts"]
   },
   "program-categories": {
     "title": "Programs: the categories and their order",

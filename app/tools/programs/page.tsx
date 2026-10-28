@@ -11,6 +11,7 @@ import { resolveOffering } from "@/lib/programOffering";
 import { registrationWindow } from "@/lib/registrationWindow";
 import { fmtDay } from "@/lib/registrationDesk";
 import { inListingOrder } from "@/lib/programOrder";
+import Link from "next/link";
 import ProgramsTableClient, {
   type ProgramRow,
 } from "@/components/registrar/ProgramsTableClient";
@@ -115,6 +116,9 @@ export default async function ProgramsToolPage() {
     };
   });
 
+  // Programs being set up (2026-10-28): drafts, not yet programs.
+  const drafts = await db.programDraft.findMany({ orderBy: { updatedAt: "desc" }, select: { id: true, data: true } });
+
   return (
     <div className="vol-page">
       <div className="vol-content">
@@ -122,6 +126,19 @@ export default async function ProgramsToolPage() {
           <h1 className="vol-header__title">Programs</h1>
           <p className="vol-header__sub">Every program, with its category, format, delivery and registration.</p>
         </header>
+        {drafts.length > 0 && (
+          <section className="ps-drafts" aria-labelledby="ps-drafts-title">
+            <h2 id="ps-drafts-title" className="ps-drafts__title">Being set up</h2>
+            <ul className="ps-drafts__list">
+              {drafts.map((d) => (
+                <li key={d.id}>
+                  <span>{(d.data as { name?: string }).name?.trim() || "A new program"}</span>
+                  <Link className="app-act" href={`/tools/programs/drafts/${d.id}`}>Continue setting it up</Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <ProgramsTableClient
           programs={programRows}
           basePath="/tools/programs"

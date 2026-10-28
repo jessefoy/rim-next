@@ -640,6 +640,36 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(Array.from(ord.inListingOrder(events), (p) => p.name), ['Mindful Photography', 'End of Year Gathering'], 'programs with an end go by their first session');
   check(Array.from(ord.inListingOrder([...groups, { ...events[0], listFirst: 1 }]), (p) => p.name)[0], 'End of Year Gathering', 'shown first leads its section');
   check(groups.map((p) => p.name)[0], 'Recovery Dharma', 'ordering does not change the list it was given');
+
+  // Setting up a program, step by step (2026-10-28, Phase 2): the walk-through's
+  // answers become the program's values, its sessions, its sentences and the save's body.
+  {
+  const dlx = load('lib/dateLabel.ts', { '@/lib/timezone': tzmod, '@/lib/scheduleUtils': su });
+  const omx = load('lib/outsideMeeting.ts');
+  const pux = load('lib/programUtils.ts', { '@/lib/dateLabel': dlx, '@/lib/timezone': tzmod, '@/lib/scheduleUtils': su, '@/lib/outsideMeeting': omx });
+  const setup = load('lib/programSetup.ts', { '@/lib/timezone': tzmod, '@/lib/scheduleUtils': su, '@/lib/programUtils': pux, '@/lib/outsideMeeting': omx, '@/lib/renderRichContent': load('lib/renderRichContent.ts') });
+  let draft = setup.blankSetup();
+  check([setup.missingForPublish(draft).map((m) => m.step.id).join(',')], ['name,often,first,teachers,join,category'], 'a blank program needs its name, how often, its day, a teacher (or none), how people join, and where it belongs');
+  draft = { ...draft, name: 'Mindful Photography', programFormat: 'virtual', recurrenceDays: ['FR'], startDatetime: '2026-10-30T19:00', setup: { ...draft.setup, often: 'weekly', ends: 'count', timeFrom: '19:00', timeTo: '19:45' }, recurrenceCount: '4' };
+  draft = setup.applySchedule(draft);
+  check([draft.endDatetime, draft.recurrenceFreq, draft.recurrenceInterval, setup.scheduleSentence(draft)], ['2026-10-30T19:45', 'WEEKLY', '1', 'Fridays, 7 to 7:45 PM.'], 'a repeating program ends each session on its first day; the sentence says the pattern and the time');
+  check(Array.from(setup.sessionDays(draft)), ['2026-10-30', '2026-11-06', '2026-11-13', '2026-11-20'], 'four Fridays');
+  const monthly = setup.applySchedule({ ...draft, startDatetime: '2026-11-29T09:30', setup: { ...draft.setup, often: 'monthly', monthWeek: 'last', monthDay: 0, ends: 'date', timeFrom: '09:30', timeTo: '10:45' }, recurrenceUntil: '2027-03-28' });
+  check([setup.scheduleSentence(monthly), Array.from(setup.sessionDays(monthly)).length, monthly.recurrenceCount], ['The last Sunday of each month, 9:30 to 10:45 AM.', 5, ''], 'the last Sunday of each month through March 28: five sessions, ending by date, not count');
+  check([setup.patternFits({ often: 'monthly', monthWeek: 2, monthDay: 5 }, [], '2026-11-13'), setup.patternFits({ often: 'monthly', monthWeek: 2, monthDay: 5 }, [], '2026-10-30'), setup.patternFits({ often: 'weekly' }, ['WE'], '2026-11-07')], [true, false, false], 'only days it meets can be the first session');
+  const stay = setup.applySchedule({ ...draft, startDatetime: '2026-11-13T16:00', setup: { ...draft.setup, often: 'days', timeFrom: '16:00', timeTo: '12:00' } }, '2026-11-15');
+  check([stay.startDatetime, stay.endDatetime, stay.recurrenceFreq, setup.scheduleSentence(stay)], ['2026-11-13T16:00', '2026-11-15T12:00', '', 'Friday, November 13, from 4 PM, to Sunday, November 15, 12 PM.'], 'several days in a row: arrive the first day, leave the last');
+  const ready = { ...draft, programTeachers: [{ id: 't', firstName: 'Amy', lastName: 'Gardner' }], offeringCategory: 'IMMERSION', offeringFormat: 'COURSE', registrationEnabled: true, setup: { ...draft.setup, join: 'register', host: 'team', limit: 'some' }, registrationCapacity: '12' };
+  check(setup.missingForPublish(ready).length, 0, 'answered: nothing missing');
+  const body = setup.setupToBody(ready, { supportingTeams: [], hostingTeams: ['host-team'] });
+  check([body.slug, body.recurrenceCount, body.recurrenceUntil, body.registrationCapacity, body.hostingRequired, body.teacherIds, body.listFirst], ['mindful-photography', 4, null, 12, true, ['t'], false], 'Publish sends what the save expects');
+  check(setup.liveSteps(ready).find((x) => x.id === 'places').says(ready), '12 places, then a waiting list.', 'the review says each answer as a sentence');
+  check([setup.patternFits({ often: 'monthly', monthWeek: 4, monthDay: 3 }, [], '2026-11-25'), setup.patternFits({ often: 'monthly', monthWeek: 4, monthDay: 3 }, [], '2026-12-23'), setup.patternFits({ often: 'monthly', monthWeek: 'last', monthDay: 3 }, [], '2026-11-25')], [false, true, true], 'a 4th Wednesday starts in a month with five (Nov 25 is the last, and would be read as the last)');
+  const copyDraft = { ...ready, setup: { ...ready.setup, copySlug: 'retreat-2', copyName: 'Retreat' } };
+  check([setup.slugFor({ ...copyDraft, name: 'Retreat' }), setup.slugFor({ ...copyDraft, name: 'Winter Retreat' })], ['retreat-2', 'winter-retreat'], 'a copy keeps its suggested address while its name is the original\'s, then follows the new name');
+  check([setup.setupToBody({ ...ready, programFormat: 'in-person', hostingHubSlug: 'peer-led' }, { supportingTeams: [], hostingTeams: [] }).hostingHubSlug, setup.setupToBody({ ...ready, programFormat: 'in-person' }, { supportingTeams: [], hostingTeams: [] }).hostingRequired], [null, true], 'an in-person program sends no hosting team that can\'t staff it');
+  check(setup.liveSteps({ ...ready, registrationCapacity: '12.5' }).find((x) => x.id === 'places').need({ ...ready, registrationCapacity: '12.5' }), 'How many places? A whole number.', 'places are whole numbers');
+  }
   const ph = load('lib/phone.ts');
   check([ph.formatPhone('4143507893'), ph.formatPhone('+1 414 350 7893'), ph.formatPhone('ext 12')], ['(414) 350-7893', '(414) 350-7893', 'ext 12'], 'one phone format; anything else as typed');
 

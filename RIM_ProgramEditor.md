@@ -6,6 +6,14 @@ The Program Manager is the operational application for creating and maintaining 
 
 ---
 
+## Setting up a program, step by step (2026-10-28, Phase 2)
+
+New programs are set up through a walk-through, not the editor. **What are you offering?** (`/tools/programs/new`) lists drafts being set up, then the shapes and copies; each is a form posting the server action `startDraft` (`app/tools/programs/new/actions.ts`), never a link, so nothing makes a draft by being looked at. A draft is a row in `program_drafts` (`ProgramDraft`): the editor's own values (`ProgramData`, so shapes and copies reuse `shapeStart` and `copyForNew`) plus `recurrenceUntil`, `listFirst` and `setup` (the walk-through's choices: how often, which one of the month, how it ends, how people join, the session times, the step it's on, the steps reached, answers to choose again). It isn't a program, so nothing that lists, schedules or emails programs sees it.
+- **The questions** are `lib/programSetup.ts` (`SETUP_STEPS`: section, question, when it applies, what it needs, the trail's answer, the review's sentence; `applySchedule` puts the schedule choices into the values; `sessionDays` and `scheduleSentence` say what it makes, by the site's own rule; `setupToBody` is the save's body, kept in step with the editor's `buildPayload` until the editor retires in Phase 3). The screen is `components/programSetup/ProgramSetup.tsx` at `/tools/programs/drafts/[id]` (`ps-` in `custom.css`).
+- **Saved as you go**: `PATCH /api/program-drafts/[id]` a moment after each change; `DELETE` discards. Anyone who may use Programs may start, continue or discard a draft.
+- **Publish**: `POST /api/program-drafts/[id]/publish` (`publishDraft` in `lib/programDrafts.ts`) builds the body, frees the address if another program has it, and calls `createProgram` as the person publishing (so the registration roles' parts follow their roles, and the save's schedule refusals apply); the teams are told then, as creating always has. The draft is deleted and the editor opens on the program ("Created. It's saved."). `createProgram` now takes `listFirst: true` (shown first, after any already first).
+- The Programs list shows drafts at the top under **Being set up**. Editing a published program is still the editor until Phase 3.
+
 ## The schedule's rules, and the order of programs (2026-10-28, Phase 1 of the step-by-step setup)
 
 The program editor is being rebuilt as a guided walk-through (`mockups/program-setup-2026-10-28/`: `CONCEPT.md`, `BUILD_PLAN.md`). Phase 1 changed the rules underneath, for the old editor too:

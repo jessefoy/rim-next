@@ -1180,6 +1180,10 @@ export async function createProgram(actor: SaveActor, body: any): Promise<SaveRe
       recurrenceDays: body.recurrenceDays ?? [],
       recurrenceCount: body.recurrenceCount != null && body.recurrenceCount !== "" ? Number(body.recurrenceCount) : null,
       recurrenceUntil: createUntil,
+      // Shown first in its section (2026-10-28): after any already shown first.
+      listFirst: body.listFirst === true
+        ? ((await db.program.aggregate({ where: { listFirst: { not: null }, archivedAt: null }, _max: { listFirst: true } }))._max.listFirst ?? 0) + 1
+        : null,
       registrationEnabled: body.registrationEnabled ?? false,
       registrationClosed: body.registrationClosed ?? false,
       registrationCapacity: body.registrationCapacity != null ? Number(body.registrationCapacity) : null,

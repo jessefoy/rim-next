@@ -48,7 +48,7 @@ Filter pills across the top narrow the list, each with a count. Archived program
 
 ## Starting a program
 
-Choosing **+ Add Program** opens a page that asks **What are you offering?**
+Choosing **+ Add Program** opens a page that asks **What are you offering?** Since October 28, 2026, choosing a shape, a blank program or a copy starts a **draft** and walks you through setting it up, one question at a time (below, "Setting up a program, step by step"). Drafts already started are listed first, under **Being set up**, and at the top of the Programs list, each with **Continue setting it up**.
 
 ### The six shapes
 
@@ -76,7 +76,19 @@ Under **Or copy a program**, choose a past program and Copy. This is the easiest
 - Save asks for the dates if they are missing ("Under When and where: set this program's dates. A copy starts without them.").
 - A note at the top says what was and wasn't copied.
 
-When a new program is saved for the first time, it says **"Created. It's saved."**
+When a new program is published, the editor opens on it and says **"Created. It's saved."**
+
+## Setting up a program, step by step
+
+A new program is set up one question at a time, in the seven sections below, in the order you'd decide them. Wording is provisional until Jesse's read-aloud.
+
+- **One question, one Continue.** Each question says where you are ("When and where · 3 of 8"). **Back** goes to the question before; **Skip this for now** appears on optional questions. A question that needs something before going on says what, beside the button.
+- **Your answers so far** sit beside the question on a computer, or folded above it on a phone. Tap any answer to go back to it. Changing your mind keeps whatever still fits; if something no longer fits, it says so ("The first session was Friday, October 30, which doesn't fit now, so you'll choose it again.") and marks that answer.
+- **It's a draft until you publish.** It's saved as you go ("Saved as you go."), so you can stop and come back. No one sees it and no team is told anything until Publish.
+- **When and where**, so the schedule can't go wrong: **How often** (Once, Several days in a row, Every week, Every other week, Once a month); **which days** (for monthly, which one of the month and which day); **what time**, with the length shown ("That's 45 minutes."); **the first session**, on a calendar where only the days it meets can be chosen, from today on; **when it ends** (It goes on, After a number of sessions, On a date), with the sessions listed as you set them ("Fridays, 7 to 7:45 PM. 4 sessions." and the dates).
+- **Where should people find it?** shows the section of Programs & Events as visitors will see it, with this program in its place, and **Show it first in its section**. My Home can wait for a date ("Only from a date…").
+- **The review** shows every answer as a sentence, each section with **Change**, and **When you publish**: what publishing sets off (where it appears, registration opening, which teams are told, a Zoom meeting for each session). **Publish** stays off while something is missing, and each missing thing links to its question. **Keep it as a draft** leaves it for later; **Discard this draft** asks first.
+- After Publish, the program is changed in the editor, as before (for now).
 
 ---
 
