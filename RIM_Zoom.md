@@ -189,6 +189,11 @@ exists) when it's:
 - **registration-on** (`settings.approval_type` 0/1 — a meeting made before the
   no-registration fix; it would show a registration form).
 
+A reused meeting whose name differs from its program's is renamed here too
+(2026-10-28): a program's rename renames its meetings at once
+(`applyProgramMeetingTopic`, `lib/programSave.ts`), and any Zoom refused then
+takes the new name when the session opens.
+
 The recreate is loop-safe (a fresh meeting is always `approval_type 2`). So a host
 who closes a meeting and re-enters within the window always lands in a live,
 form-free meeting. (`meetingIsGone()` matches 404/3001; the approval_type check

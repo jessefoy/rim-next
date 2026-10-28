@@ -2,7 +2,18 @@
 
 Read first when opening RIM. Updated 2026-10-27 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-27 closed: the RIM Guide for volunteers; settled dana confirms
+## Active — 2026-10-28: Content editors change the site through the RIM Guide
+
+Built and pushed (not yet tried live). Reference: `volunteer-guide/README.md`; role: `RIM_Role_Design.md`, "Content Editor". A **Content editor** (role in Roles & access) can, through the guide, change anything the Programs, Course Manager, email and teacher-page editors save (through those editors' own saves, now in `lib/programSave.ts` and `lib/contentSaves.ts`) and the words on the pages (a words-only commit to `main`). No approval; every change is listed at `/admin/content-changes` and emailed to Jesse. A program's rename now reaches registrations, donations and Zoom (editor too).
+
+**Waiting on Jesse:**
+- Create the GitHub key and add it to Vercel as `GITHUB_CONTENT_TOKEN` (until then page words can't change; the guide says so).
+- Give the Content editor role (himself included) in Roles & access.
+- Paste the new `volunteer-guide/INSTRUCTIONS.md` into the project's instructions; send the updated PDF if wanted.
+- Try one change of each kind; check the email and the History page. **Content editors commit to `main`: pull before pushing.**
+- Read-aloud: the Allow page's new sentence, the Roles & access line, the email `content-changed`, the History pages, the editor's Zoom-name note.
+
+## Earlier — 2026-10-27 closed: the RIM Guide for volunteers; settled dana confirms
 
 Everything is on `main` (`4768649` … `b5e97f2`, and this closing). Narrative: `session-log.md`, 2026-10-27. Reference: `volunteer-guide/README.md` (and the new `CLAUDE.md` row).
 

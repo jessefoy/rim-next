@@ -172,6 +172,7 @@ enum Role {
   TEACHER              // course/lesson management via Course Manager tool
   SUPPORT              // support inbox — reads/replies to support@rootedinmindfulness.org
   GUIDING_TEACHER      // dharma authority — manages hub trash alongside admin + coordinators
+  CONTENT_EDITOR       // changes the site's content through the RIM Guide: everything the editors save, and the words on every page (2026-10-28). Given by hand to people Jesse trusts; each change is kept in content_changes and emailed to him.
 }
 
 enum MemberStatus {
@@ -1098,6 +1099,27 @@ model GuideGrant {
   @@index([familyId])
   @@index([userId])
   @@map("guide_grants")
+}
+
+/// One change to the site's content made through the RIM Guide (2026-10-28,
+/// lib/contentChanges.ts): who, when, what, and each part before and after.
+/// `kind`: "program" | "course" | "lesson" | "email" | "teacher" | "page".
+/// A page change is a commit to the site's code on GitHub (words only), with
+/// its address. Listed at /admin/content-changes; each one is emailed to Jesse.
+model ContentChange {
+  id        String   @id @default(cuid())
+  userId    String
+  userName  String
+  kind      String
+  itemKey   String
+  itemLabel String
+  itemHref  String?
+  changes   Json // [{ label, before, after }]
+  commitUrl String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("content_changes")
 }
 
 /// A team that prepares for a program without being on its schedule (2026-10-24,

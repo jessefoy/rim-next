@@ -6,6 +6,12 @@ The Program Manager is the operational application for creating and maintaining 
 
 ---
 
+## One save, shared with the RIM Guide (2026-10-28)
+
+The editor's save lives in `lib/programSave.ts` (`saveProgram(actor, slug, body)`); `PUT /api/programs-pg/[slug]` checks `canUsePrograms` and calls it, and the RIM Guide calls the same function for a Content editor (`lib/guideEdits.ts`), so a change made through the guide does exactly what Save does. **Change the save there, never in the route**, or the two drift. The actor's roles still decide the parts only the registration roles may change (teams that prepare, who asks a question, the guest-link reset).
+
+**A new name reaches every copy of it** (Jesse: a rename must come through everywhere, as if made once). The save updates `Registration.programTitle` (My Home, reminders, the update page, calendar links) and `Donation.programTitle`, and renames the Zoom meetings already made that haven't ended (`applyProgramMeetingTopic`). A meeting Zoom wouldn't rename is reported (`meetingsNotRenamed`, a note at the top of the editor), and the Zoom door renames it when the session opens (`RIM_Zoom.md`, Self-heal). Emails and notices already sent stay as sent; Flodesk can't rename a segment, so a program's mailing list keeps its first name.
+
 ## Read-aloud rulings (the after-build session, 2026-10-25)
 
 **The list and the buttons (2026-10-26, Jesse: the buttons were "not very professional-looking").** The Programs list is one calm row per program (`prl-` in `custom.css`: name, what needs a look, kind, registration as Off/Open/Closed/Opens…, places in words, People / Edit / Archive as quiet text), the shared filter pills with counts, short cards below 820px. Across the editor and the start page, secondary buttons are quiet text (`.app-act`), the back link plain text (`.app-back`), and only the button that does the work is filled; checkboxes are 20px in RIM's blue; the edit page's browser tab names the program. The rule: `RIM_Member_Area.md`, "The apps' buttons".

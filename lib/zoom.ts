@@ -229,6 +229,14 @@ export async function setMeetingAutoRecording(
   });
 }
 
+/** Rename an existing meeting (PATCH topic only), after its program is renamed. */
+export async function setMeetingTopic(meetingId: number | string, topic: string): Promise<void> {
+  await zoomApi(`/meetings/${encodeURIComponent(String(meetingId))}`, {
+    method: "PATCH",
+    body: JSON.stringify({ topic: topic.slice(0, 200) }),
+  });
+}
+
 /** Delete a meeting (teardown on format change / program delete / occurrence cancel). */
 export async function deleteMeeting(meetingId: number | string): Promise<void> {
   await zoomApi(`/meetings/${encodeURIComponent(String(meetingId))}`, { method: "DELETE" });

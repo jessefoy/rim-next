@@ -21,13 +21,18 @@ import { redactPrivate } from "@/lib/guideContent";
 export type GuideViewer = { userId: string; firstName: string; roles: string[]; sectionGrants: string[] };
 
 const isAdmin = (v: GuideViewer) => v.roles.includes("ADMIN");
+// A Content editor may change every program and email (lib/guideEdits.ts),
+// so the guide shows them every program's settings and every email too.
+const isContentEditor = (v: GuideViewer) => v.roles.includes("CONTENT_EDITOR");
+const canReadPrograms = async (v: GuideViewer) => isContentEditor(v) || (await canUsePrograms(v.userId, v.roles));
+const canReadEmails = (v: GuideViewer) => isAdmin(v) || isContentEditor(v);
 const canUseRegistry = (v: GuideViewer) => v.roles.includes("ADMIN") || v.roles.includes("REGISTRAR");
 
 const NO_ACCESS = (what: string) =>
   `You can't see ${what} on RIM with your account, so the guide can't either. If you think you should, ask Jesse.`;
 
 /** Rich content (BlockNote JSON or HTML) as plain text. */
-function plain(v: unknown): string {
+export function plain(v: unknown): string {
   if (v === null || v === undefined || v === "") return "";
   if (typeof v === "string" && !isHtmlString(v)) {
     try {
@@ -63,7 +68,7 @@ const cents = (c: number | null | undefined) => (typeof c === "number" ? `$${(c 
 const PROGRAM_FIND_SELECT = { slug: true, name: true, archivedAt: true } as const;
 
 /** A program by its web address or by words from its name. */
-async function findProgram(raw: string): Promise<{ slug: string } | string> {
+export async function findProgram(raw: string): Promise<{ slug: string } | string> {
   const q = raw.trim().replace(/^.*\/(programs|registration)\//, "").replace(/\/.*$/, "");
   if (!q) return "Which program? Give its name or its web address.";
   const exact = await db.program.findUnique({ where: { slug: q.toLowerCase() }, select: PROGRAM_FIND_SELECT });
@@ -90,7 +95,7 @@ const DESK_SELECT = {
 
 /** Programs as the Programs list shows them; counts only for Registration's people. */
 export async function listPrograms(v: GuideViewer, includeArchived: boolean): Promise<string> {
-  if (!(await canUsePrograms(v.userId, v.roles))) return NO_ACCESS("Programs");
+  if (!(await canReadPrograms(v))) return NO_ACCESS("Programs");
   const programs = await db.program.findMany({
     where: includeArchived ? {} : { archivedAt: null },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -125,7 +130,7 @@ export async function listPrograms(v: GuideViewer, includeArchived: boolean): Pr
 
 /** Every setting of one program, as the program editor holds it, by its name in the editor. */
 export async function programSettings(v: GuideViewer, raw: string): Promise<string> {
-  if (!(await canUsePrograms(v.userId, v.roles))) return NO_ACCESS("Programs");
+  if (!(await canReadPrograms(v))) return NO_ACCESS("Programs");
   const found = await findProgram(raw);
   if (typeof found === "string") return found;
   const [program, coverage] = await Promise.all([
@@ -274,7 +279,7 @@ async function staffNames(ids: (string | null)[]): Promise<(id: string | null) =
 
 /** The email templates (/admin/emails), for Admin: the list, or one in full. */
 export async function emailTemplates(v: GuideViewer, slug?: string): Promise<string> {
-  if (!isAdmin(v)) return NO_ACCESS("the email templates");
+  if (!canReadEmails(v)) return NO_ACCESS("the email templates");
   if (!slug?.trim()) {
     const all = await db.emailTemplate.findMany({
       orderBy: [{ group: "asc" }, { name: "asc" }],
@@ -511,8 +516,8 @@ export async function teamSchedule(v: GuideViewer, slug: string, weeksAsked = 4)
 }
 
 export const viewerCan = {
-  programs: (v: GuideViewer) => canUsePrograms(v.userId, v.roles),
+  programs: canReadPrograms,
   registration: (v: GuideViewer) => canUseRegistration(v.roles),
-  emails: isAdmin,
+  emails: canReadEmails,
   registry: canUseRegistry,
 };

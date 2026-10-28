@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { hasToolAccess } from "@/lib/toolAuth";
-import { flagsFromAccessLevel, accessLevelFromFlags } from "@/lib/courseAccess";
+import { saveCourse } from "@/lib/contentSaves";
 
 export async function GET(
   _request: NextRequest,
@@ -42,153 +42,9 @@ export async function PATCH(
   }
 
   const { slug } = await params;
-  const body = await request.json();
-
-  const course = await db.course.findUnique({ where: { slug } });
-  if (!course) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  // Handle lesson order update — accepts { id, groupLabel? }[] or legacy string[]
-  if (body.lessonOrder && Array.isArray(body.lessonOrder)) {
-    await db.courseLesson.deleteMany({ where: { courseId: course.id } });
-    await db.courseLesson.createMany({
-      data: body.lessonOrder.map(
-        (item: string | { id: string; groupLabel?: string | null }, i: number) => ({
-          courseId: course.id,
-          lessonId: typeof item === "string" ? item : item.id,
-          sortOrder: i,
-          groupLabel: typeof item === "string" ? null : (item.groupLabel || null),
-        })
-      ),
-    });
-  }
-
-  // Handle field updates
-  const { lessonOrder, ...fields } = body;
-  const updateData: Record<string, unknown> = {};
-
-  if (fields.title !== undefined) updateData.title = fields.title;
-  if (fields.slug !== undefined) {
-    // Check uniqueness if slug is changing
-    if (fields.slug !== slug) {
-      const existing = await db.course.findUnique({ where: { slug: fields.slug } });
-      if (existing) {
-        return NextResponse.json({ error: "A course with this slug already exists" }, { status: 409 });
-      }
-    }
-    updateData.slug = fields.slug;
-  }
-  if (fields.subheading !== undefined) updateData.subheading = fields.subheading || null;
-  if (fields.description !== undefined) updateData.description = fields.description || null;
-
-  // accessLevel writes also derive the new orthogonal flags during
-  // transition. The editor still posts accessLevel; this keeps the new
-  // flags consistent with the legacy enum so the access helper (which
-  // reads only the flags) sees the right state immediately on save.
-  if (fields.accessLevel !== undefined) {
-    updateData.accessLevel = fields.accessLevel;
-    const flags = flagsFromAccessLevel(fields.accessLevel);
-    updateData.allowSelfEnroll = flags.allowSelfEnroll;
-    updateData.selfEnrollDanaRequired = flags.selfEnrollDanaRequired;
-  }
-
-  // Pass-through of orthogonal flags + content fields. The editor writes
-  // these directly (slice 5 — tabbed restructure).
-  if (fields.allowSelfEnroll !== undefined) updateData.allowSelfEnroll = Boolean(fields.allowSelfEnroll);
-
-  // Legacy pass-through. New writers send danaMode directly (below);
-  // this branch only fires if an older client sends only the boolean.
-  // Derive a danaMode so the source-of-truth and mirror don't drift —
-  // turning the boolean on yields "voluntary" (the safest default) when
-  // there's no current mode; turning it off forces "none".
-  if (fields.selfEnrollDanaRequired !== undefined && fields.danaMode === undefined) {
-    const onNow = Boolean(fields.selfEnrollDanaRequired);
-    updateData.selfEnrollDanaRequired = onNow;
-    updateData.danaMode = onNow
-      ? course.danaMode === "none" ? "voluntary" : course.danaMode
-      : "none";
-  }
-  if (fields.accessRestrictionMessage !== undefined) updateData.accessRestrictionMessage = fields.accessRestrictionMessage || null;
-  if (fields.heroImage !== undefined) updateData.heroImage = fields.heroImage || null;
-  if (fields.pullQuote !== undefined) updateData.pullQuote = fields.pullQuote || null;
-  if (fields.pullQuoteSource !== undefined) updateData.pullQuoteSource = fields.pullQuoteSource || null;
-  if (fields.danaText !== undefined) updateData.danaText = fields.danaText || null;
-  if (fields.categoryId !== undefined) updateData.categoryId = fields.categoryId || null;
-
-  // Dana model (slice 5). If the client sends danaMode, derive
-  // selfEnrollDanaRequired as a mirror so legacy reads stay consistent.
-  if (fields.danaMode !== undefined) {
-    updateData.danaMode = fields.danaMode;
-    updateData.selfEnrollDanaRequired = fields.danaMode !== "none";
-  }
-  if (fields.suggestedDana !== undefined) {
-    updateData.suggestedDana =
-      fields.suggestedDana == null ? null : Number(fields.suggestedDana);
-  }
-  if (fields.danaBaseAmount !== undefined) {
-    updateData.danaBaseAmount =
-      fields.danaBaseAmount == null ? null : Number(fields.danaBaseAmount);
-  }
-  if (fields.danaFixedAmount !== undefined) {
-    updateData.danaFixedAmount =
-      fields.danaFixedAmount == null ? null : Number(fields.danaFixedAmount);
-  }
-  if (fields.danaMessage !== undefined) {
-    updateData.danaMessage = fields.danaMessage ?? null;
-  }
-
-  if (fields.hideFromMemberProfile !== undefined) updateData.hideFromMemberProfile = fields.hideFromMemberProfile;
-  if (fields.sortOrder !== undefined) updateData.sortOrder = fields.sortOrder != null ? Number(fields.sortOrder) : null;
-  if (fields.isActive !== undefined) updateData.isActive = fields.isActive;
-  if (fields.isOnboarding !== undefined) updateData.isOnboarding = fields.isOnboarding;
-  if (fields.publishOnPublicCatalog !== undefined) updateData.publishOnPublicCatalog = fields.publishOnPublicCatalog;
-  // requiredRoles is now an independent orthogonal field (session 123).
-  // Empty array = no role gate; non-empty = visible/enrollable only to
-  // members holding at least one listed role (ADMIN bypass). The editor
-  // writes this directly. Legacy accessLevel-coupled coercion has been
-  // removed — the new model treats requiredRoles as the source of truth.
-  if (fields.requiredRoles !== undefined) {
-    updateData.requiredRoles = Array.isArray(fields.requiredRoles)
-      ? fields.requiredRoles
-      : [];
-  }
-
-  if (fields.completionNote !== undefined) updateData.completionNote = fields.completionNote || null;
-
-  // ── Keep the legacy accessLevel column in sync with the new flags ──
-  // When the editor writes the new flags directly (and doesn't send
-  // accessLevel), derive a legacy value from the resulting flag state.
-  // Without this, the enum column can drift away from the flags after
-  // any flag edit. Lossy by design — the enum drops in a later pass.
-  if (
-    fields.accessLevel === undefined &&
-    (updateData.allowSelfEnroll !== undefined ||
-      updateData.requiredRoles !== undefined)
-  ) {
-    const finalAllowSelfEnroll =
-      updateData.allowSelfEnroll !== undefined
-        ? Boolean(updateData.allowSelfEnroll)
-        : course.allowSelfEnroll;
-    const finalRequiredRoles = (updateData.requiredRoles as string[] | undefined) ?? (course.requiredRoles as string[]);
-    updateData.accessLevel = accessLevelFromFlags({
-      allowSelfEnroll: finalAllowSelfEnroll,
-      requiredRoles: finalRequiredRoles,
-    });
-  }
-
-  const updated = await db.course.update({
-    where: { slug },
-    data: updateData,
-    include: {
-      lessons: {
-        include: { lesson: true },
-        orderBy: { sortOrder: "asc" },
-      },
-    },
-  });
-
-  return NextResponse.json(updated);
+  // The save itself (lib/contentSaves.ts) is shared with the RIM Guide.
+  const result = await saveCourse(slug, await request.json());
+  return NextResponse.json(result.body, { status: result.status });
 }
 
 export async function DELETE(

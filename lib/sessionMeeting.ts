@@ -19,7 +19,7 @@
 
 import { db } from "@/lib/db";
 import { ctDayBounds } from "@/lib/timezone";
-import { createMeeting, deleteMeeting, setMeetingAutoRecording } from "@/lib/zoom";
+import { createMeeting, deleteMeeting, setMeetingAutoRecording, setMeetingTopic } from "@/lib/zoom";
 import { EARLY_OPEN_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
 
 /**
@@ -259,4 +259,32 @@ export async function applyProgramRecordingSetting(
     }
   }
   return updated;
+}
+
+/**
+ * Give a renamed program's meetings that haven't ended its new name (2026-10-28),
+ * as applyProgramRecordingSetting does for Record: a meeting is named when it
+ * is made, so without this one made before the rename keeps the old name.
+ * Zoom refusing one is logged and counted, so the person who renamed it is told.
+ */
+export async function applyProgramMeetingTopic(
+  programSlugs: string[],
+  topic: string,
+): Promise<{ updated: number; failed: number }> {
+  const rows = await db.sessionMeeting.findMany({
+    where: { programSlug: { in: programSlugs }, endTime: { gt: new Date() } },
+    select: { zoomMeetingId: true },
+  });
+  let updated = 0;
+  let failed = 0;
+  for (const row of rows) {
+    try {
+      await setMeetingTopic(row.zoomMeetingId, topic);
+      updated++;
+    } catch (e) {
+      failed++;
+      console.error("[sessionMeeting] rename failed", row.zoomMeetingId, e);
+    }
+  }
+  return { updated, failed };
 }

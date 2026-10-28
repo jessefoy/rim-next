@@ -236,6 +236,10 @@ To be written as a dedicated spec after this role design is reviewed and approve
 
 ---
 
+## Content Editor (2026-10-28)
+
+`CONTENT_EDITOR` lets a person change the site's content through the RIM Guide: anything the Programs, Course Manager, email and teacher-page editors save, and the words on every page, which are written into the site's code (Jesse: "so we don't have to build an independent editor for that"). Given by hand in Roles & access to people Jesse trusts (Jesse: "Whoever I give permission … I trust"), so there is **no approval step**; instead every change is recorded (`content_changes`, listed at `/admin/content-changes`) and emailed to Jesse as it is made. It changes content only: editor saves go through the editors' own save functions, and page changes are words only (`lib/pageWords.ts` allows only text a visitor reads, and never touches the admin, sign-in or API files). The parts that decide access (a program's teachers, guest and open entry, its teams and mailing list; a course's roles and enrolment; a lesson's access) are not offered, and the sign-in emails, an email's on/off and the email about changes stay with admins, so the role can't reach anyone's account or silence the record. It grants nothing on the site itself: no editor, tool or registry access. It is not implied by ADMIN; Jesse gives it to himself too. Reference: `volunteer-guide/README.md`.
+
 ## Guiding Teacher
 
 ### What this role actually does

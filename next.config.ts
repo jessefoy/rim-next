@@ -13,14 +13,12 @@ const nextConfig: NextConfig = {
       "./volunteer-guide/*.json",
       "./RIM_*.md",
       "./components/**/*.{ts,tsx}",
-      "./app/tools/**/*.tsx",
-      "./app/account/**/*.tsx",
-      "./app/admin/**/*.tsx",
-      "./app/session/**/*.tsx",
-      "./app/login/**/*.tsx",
-      "./app/guide/**/*.tsx",
+      // Every page, so Content editors can find words to change (lib/pageWords.ts).
+      "./app/**/*.tsx",
     ],
   },
+  // Reads the pages' code to check a change is words only (lib/pageWords.ts).
+  serverExternalPackages: ["typescript"],
   // The RIM Guide's Allow page is never shown inside another site's frame.
   async headers() {
     return [

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
+import { saveTeacherProfile } from "@/lib/contentSaves";
 
 /**
  * PATCH /api/admin/members/[id]/teacher-profile
@@ -19,54 +19,7 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json();
 
-  const user = await db.user.findUnique({ where: { id }, select: { id: true, isTeacher: true } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-  // Validate slug uniqueness if provided
-  const slug: string | null = typeof body.slug === "string" ? body.slug.trim() || null : undefined;
-  if (slug !== undefined && slug !== null) {
-    const conflict = await db.teacherProfile.findFirst({
-      where: { slug, userId: { not: id } },
-    });
-    if (conflict) {
-      return NextResponse.json(
-        { error: "That slug is already used by another teacher profile." },
-        { status: 409 }
-      );
-    }
-  }
-
-  // Update isTeacher on User and upsert TeacherProfile in a transaction
-  const [, profile] = await db.$transaction([
-    db.user.update({
-      where: { id },
-      data: {
-        ...(body.isTeacher !== undefined && { isTeacher: Boolean(body.isTeacher) }),
-      },
-    }),
-    db.teacherProfile.upsert({
-      where: { userId: id },
-      create: {
-        userId: id,
-        bio: body.bio ?? null,
-        photoUrl: body.photoUrl ?? null,
-        slug: slug ?? null,
-        isPublic: body.isPublic ?? false,
-      },
-      update: {
-        ...(body.bio !== undefined && { bio: body.bio || null }),
-        ...(body.photoUrl !== undefined && { photoUrl: body.photoUrl || null }),
-        ...(slug !== undefined && { slug }),
-        ...(body.isPublic !== undefined && { isPublic: body.isPublic }),
-      },
-    }),
-  ]);
-
-  return NextResponse.json({
-    isTeacher: body.isTeacher !== undefined ? Boolean(body.isTeacher) : user.isTeacher,
-    bio: profile.bio,
-    photoUrl: profile.photoUrl,
-    slug: profile.slug,
-    isPublic: profile.isPublic,
-  });
+  // The save itself (lib/contentSaves.ts) is shared with the RIM Guide.
+  const result = await saveTeacherProfile(id, body);
+  return NextResponse.json(result.body, { status: result.status });
 }

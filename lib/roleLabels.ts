@@ -10,6 +10,7 @@ export const ROLE_LABELS: Record<string, string> = {
   REGISTRAR: "Registrar",
   TEACHER: "Teacher",
   HOST_MANAGER: "Scheduling manager",
+  CONTENT_EDITOR: "Content editor",
 };
 
 const ROLE_ORDER = Object.keys(ROLE_LABELS);

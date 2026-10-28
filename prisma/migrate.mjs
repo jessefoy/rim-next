@@ -7449,6 +7449,62 @@ Rooted In Mindfulness
   ]);
   console.log("  ✔ RIM Guide sign-ins table ready.");
 
+  // Content editing through the RIM Guide (2026-10-28): the Content editor
+  // role, and the record of every change (lib/contentChanges.ts). Additive;
+  // old code ignores both. ADD VALUE runs on its own, outside a transaction.
+  await db.$executeRawUnsafe(`ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'CONTENT_EDITOR'`);
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "content_changes" (
+      "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "userName" TEXT NOT NULL,
+      "kind" TEXT NOT NULL, "itemKey" TEXT NOT NULL, "itemLabel" TEXT NOT NULL,
+      "itemHref" TEXT, "changes" JSONB NOT NULL, "commitUrl" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "content_changes_createdAt_idx" ON "content_changes"("createdAt")`),
+  ]);
+  console.log("  ✔ Content editor role and content changes table ready.");
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: a change made through the RIM Guide (2026-10-28), emailed to Jesse
+  // after every change (lib/contentChanges.ts). findUnique → create. Wording
+  // provisional until Jesse's read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const existing = await db.emailTemplate.findUnique({ where: { slug: "content-changed" } });
+    if (existing) {
+      console.log("  Email template content-changed already exists, left alone.");
+    } else {
+      await db.emailTemplate.create({
+        data: {
+          slug: "content-changed",
+          name: "Admin: a change made through the RIM Guide",
+          description: "Sent to Jesse after every change a Content editor makes through the RIM Guide: to a program, course, lesson, email, teacher page, or the words on a page.",
+          subject: "{{editorName}} changed {{itemLabel}}",
+          variables: ["editorName", "itemLabel", "changedAt", "changesList", "itemUrl", "changeUrl", "changeButton", "historyUrl"],
+          helpText:
+            "{{changesList}} is each part that changed, before and after (use triple braces {{{changesList}}}). {{itemUrl}} is where the change shows. {{changeUrl}} opens this change in the history; {{historyUrl}} is the whole history.\n\n" +
+            "Available variables: {{editorName}}, {{itemLabel}}, {{changedAt}}, {{changesList}}, {{itemUrl}}, {{changeUrl}}, {{changeButton}} (use triple braces {{{changeButton}}}), {{historyUrl}}.",
+          body: `{{editorName}} changed {{itemLabel}} through the RIM Guide, {{changedAt}}.
+
+{{{changesList}}}
+
+{{{changeButton}}}
+
+Or open it here: {{changeUrl}}
+
+See it on the site: {{itemUrl}}
+
+Every change is listed at {{historyUrl}}.`,
+          enabled: true,
+          group: "09-admin",
+          groupLabel: "Admin",
+        },
+      });
+      console.log("  ✔ Email template content-changed created.");
+    }
+  } catch (err) {
+    console.error("  content-changed seed failed:", err?.message ?? err);
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

@@ -8,6 +8,7 @@ import { clientRedirectOk, issueCode, SITE_ORIGIN } from "@/lib/guideAuth";
  * authorization endpoint, lib/guideAuth.ts). Signed out, it goes through
  * sign-in and comes back here (/login?next=). Allow returns a one-time code
  * to Claude; Cancel returns "denied". Nothing is changed in RIM by either.
+ * (A Content editor's guide can change content later: lib/guideEdits.ts.)
  * Wording provisional until Jesse's read-aloud.
  */
 
@@ -121,7 +122,8 @@ export default async function GuideConnectPage({
     <Shell title="Connect the RIM Guide">
       <p className="pp-form__help lg-lead">
         Claude is asking to read RIM as you{firstName ? `, ${firstName}` : ""}. The RIM Guide will see what you see when
-        you&apos;re signed in here. It can&apos;t change anything or send anything.
+        you&apos;re signed in here. It can&apos;t send anything, and it changes nothing unless Jesse has made you a
+        Content editor; then it changes the site&apos;s content only when you ask, and shows you each change first.
       </p>
       <p className="pp-form__help">
         Connecting from <strong className="lg-email">{fromWords}</strong>.

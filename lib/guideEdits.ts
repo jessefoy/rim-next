@@ -1,0 +1,494 @@
+import "server-only";
+import { createHash } from "crypto";
+import { db } from "@/lib/db";
+import { EDITOR_FIELD_LABELS, EDITOR_PROGRAM_INCLUDE, editorFieldValue, programToEditorData } from "@/lib/programEditorData";
+import { saveProgram, type SaveActor } from "@/lib/programSave";
+import { saveCourse, saveEmailTemplate, saveLesson, saveTeacherProfile } from "@/lib/contentSaves";
+import { recordContentChange, type ChangedPart, type ContentKind } from "@/lib/contentChanges";
+import { changePageWords, findPageWords, NoGithubError, pageAddress, wordsPattern } from "@/lib/pageWords";
+import { findProgram } from "@/lib/guideData";
+import { isBlockNoteJSON } from "@/lib/renderRichContent";
+
+/**
+ * What a Content editor changes through the RIM Guide (2026-10-28): anything
+ * the Programs, Course Manager, email and teacher-page editors save, through
+ * those editors' own saves (lib/programSave.ts, lib/contentSaves.ts), so a
+ * change does exactly what it does when made on the site; and the words on
+ * any page (lib/pageWords.ts). No approval: each change is recorded and
+ * emailed to Jesse (lib/contentChanges.ts). Called by
+ * app/api/guide-mcp/[key]/route.ts only for the CONTENT_EDITOR role.
+ */
+
+export type EditKind = Exclude<ContentKind, "page">;
+
+/** A change to one part, by finding words in it. */
+export type Replacement = { field: string; find: string; replace_with: string };
+
+const owns = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// ─── The parts each editor saves, by the names its save takes ───────────────
+
+const COURSE_FIELDS: Record<string, string> = {
+  title: "The title", slug: "The web address", subheading: "The subheading", description: "The description",
+  heroImage: "The image", pullQuote: "The quote", pullQuoteSource: "The quote's source", danaText: "The dana words",
+  danaMessage: "The dana message", danaMode: "The dana setting", suggestedDana: "The suggested dana",
+  danaBaseAmount: "The base amount", danaFixedAmount: "The fixed amount", completionNote: "The completion note",
+  accessRestrictionMessage: "The note when someone can't enroll",
+  categoryId: "The category", sortOrder: "The sort order", isActive: "Active",
+  publishOnPublicCatalog: "On the public courses page", hideFromMemberProfile: "Hidden from member profiles",
+  lessonOrder: "The lessons and their order",
+};
+
+const LESSON_FIELDS: Record<string, string> = {
+  titleDisplayed: "The title", titleInternal: "The internal title", slug: "The web address", body: "The lesson",
+  headerQuote: "The quote", quoteSource: "The quote's source", reflectionPrompt: "The reflection",
+  heroImageUrl: "The image", heroImageAlt: "The image's description", audioUrl: "The audio",
+  videoUrl: "The video", durationMinutes: "The length in minutes", resources: "The resources",
+};
+
+// Not on or off: turning an email off is the admins' (review, 2026-10-28).
+const EMAIL_FIELDS: Record<string, string> = { subject: "The subject", body: "The email" };
+
+/**
+ * Emails a Content editor may not change: the sign-in codes (whoever writes
+ * them could send someone's code anywhere) and the email telling Jesse about
+ * each change. Read-only through the guide; admins change them on the site.
+ */
+const emailClosed = (t: { slug: string; group: string }) => t.group === "01-auth" || t.slug === "content-changed";
+
+/**
+ * Rich text parts: set only as HTML (cleaned when shown), never as the older
+ * raw-HTML object, which is shown as it is (review, 2026-10-28).
+ */
+const RICH: Record<EditKind, string[]> = {
+  program: ["description", "programNotes", "confirmationMessage", "followUpMessage", "reminderMessage"],
+  course: ["description", "danaMessage"],
+  lesson: ["body"],
+  email: [],
+  teacher: [],
+};
+
+/** The parts that take a list; every other part takes words, a number, on/off or empty. */
+const LIST_PARTS = new Set(["recurrenceDays", "registrationFields", "lessonOrder", "resources"]);
+
+/** A short fingerprint of an item as read, so a whole-part change can't overwrite a newer save. */
+const versionOf = (v: unknown) => createHash("sha256").update(JSON.stringify(v ?? null)).digest("hex").slice(0, 10);
+
+const TEACHER_FIELDS: Record<string, string> = { bio: "The bio", photoUrl: "The photo", isPublic: "Shown on the teachers page" };
+
+/**
+ * Parts that decide who may see or reach something, never changed through
+ * the guide (review, 2026-10-28; Jesse: "this is content only"): a program's
+ * teachers (who see the people registered), guest and open entry, the teams
+ * that host, support or prepare (who see the people), the mailing list; a
+ * course's roles, self-enrolment and onboarding; a lesson's access and
+ * teachers. Those stay with the editors on the site.
+ */
+const ACCESS_PARTS = new Set([
+  "teacherIds", "isOpenAccess", "openEntry", "hostingHubSlug", "hostingRequired", "coverageHubSlugs",
+  "helperTeams", "flodeskSync", "flodeskSegmentId", "dateText", "timeText",
+]);
+
+const PROGRAM_FIELDS: Record<string, string> = Object.fromEntries(
+  Object.entries(EDITOR_FIELD_LABELS)
+    .filter(([k]) => !ACCESS_PARTS.has(k))
+    .map(([k, v]) => [k, cap(v)]),
+);
+
+export const FIELDS: Record<EditKind, Record<string, string>> = {
+  program: PROGRAM_FIELDS,
+  course: COURSE_FIELDS,
+  lesson: LESSON_FIELDS,
+  email: EMAIL_FIELDS,
+  teacher: TEACHER_FIELDS,
+};
+
+// ─── Finding words inside a value ───────────────────────────────────────────
+
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** Replace words that appear exactly once in a value (plain, HTML or the older block format). */
+export function replaceIn(value: unknown, find: string, replaceWith: string): { value: unknown } | { error: string } {
+  const re = wordsPattern(find);
+  if (!re) return { error: "Give at least a few words to find." };
+  if (typeof value === "string") {
+    const html = /<[a-z][\s\S]*>/i.test(value);
+    // In HTML, only the words a reader sees: never inside a tag (a link's address, say).
+    const tags = html ? [...value.matchAll(/<[^>]*>/g)].map((t) => [t.index!, t.index! + t[0].length]) : [];
+    const hits = [...value.matchAll(re)].filter((h) => !tags.some(([a, b]) => h.index! < b && h.index! + h[0].length > a));
+    if (hits.length !== 1) return { error: hits.length ? `Those words are there ${hits.length} times; include more of the words around them.` : "Those words aren't there now." };
+    const i = hits[0].index!;
+    return { value: value.slice(0, i) + (html ? escapeHtml(replaceWith) : replaceWith) + value.slice(i + hits[0][0].length) };
+  }
+  if (isBlockNoteJSON(value)) {
+    const copy = JSON.parse(JSON.stringify(value));
+    const texts: { item: { text: string } }[] = [];
+    const walk = (node: unknown) => {
+      if (Array.isArray(node)) return node.forEach(walk);
+      if (!node || typeof node !== "object") return;
+      const o = node as Record<string, unknown>;
+      if (typeof o.text === "string") texts.push({ item: o as { text: string } });
+      walk(o.content);
+      walk(o.children);
+    };
+    walk(copy);
+    const hits = texts.flatMap((t) => [...t.item.text.matchAll(re)].map((m) => ({ t, m })));
+    if (hits.length !== 1) return { error: hits.length ? `Those words are there ${hits.length} times; include more of the words around them.` : "Those words aren't there as one piece (they may cross bold text or a link)." };
+    const { t, m } = hits[0];
+    t.item.text = t.item.text.slice(0, m.index) + replaceWith + t.item.text.slice(m.index! + m[0].length);
+    return { value: copy };
+  }
+  return { error: "That part isn't words, so it can only be set, not searched." };
+}
+
+// ─── Finding the item ───────────────────────────────────────────────────────
+
+/**
+ * One item, by its web address or by words from its name: the one match, or
+ * the words to say back (none given, none found, or more than one, listed).
+ */
+async function only<T>(raw: string, strip: RegExp, what: string, bySlug: (q: string) => Promise<T | null>, byName: (q: string) => Promise<T[]>, name: (t: T) => string): Promise<T | string> {
+  const q = raw.trim().replace(strip, "").replace(/\/.*$/, "").trim();
+  if (q.length < 2) return `Which ${what}? Give its name or web address.`;
+  const exact = await bySlug(q.toLowerCase());
+  if (exact) return exact;
+  const found = await byName(q);
+  if (found.length === 1) return found[0];
+  if (!found.length) return `No ${what} matches "${raw}".`;
+  return `More than one ${what} matches "${raw}":\n${found.map((f) => `- ${name(f)}`).join("\n")}\nAsk again with one of these.`;
+}
+
+const findCourse = (raw: string) =>
+  only(raw, /^.*\/courses?\//, "course",
+    (q) => db.course.findUnique({ where: { slug: q } }),
+    (q) => db.course.findMany({ where: { title: { contains: q, mode: "insensitive" } }, take: 8 }),
+    (c) => `${c.title} (${c.slug})`);
+
+const findLesson = (raw: string) =>
+  only(raw, /^.*\/lessons\//, "lesson",
+    (q) => db.lesson.findUnique({ where: { slug: q } }),
+    (q) => db.lesson.findMany({ where: { OR: [{ titleDisplayed: { contains: q, mode: "insensitive" } }, { titleInternal: { contains: q, mode: "insensitive" } }] }, take: 8 }),
+    (l) => `${l.titleDisplayed} (${l.slug})`);
+
+const TEACHER_INCLUDE = { user: { select: { firstName: true, lastName: true, preferredName: true } } } as const;
+
+const findTeacher = (raw: string) =>
+  only(raw, /^.*\/teachers\//, "teacher page",
+    (q) => db.teacherProfile.findFirst({ where: { slug: q }, include: TEACHER_INCLUDE }),
+    (q) => db.teacherProfile.findMany({
+      where: {
+        AND: q.split(/\s+/).filter(Boolean).map((w) => ({
+          user: { OR: [{ firstName: { contains: w, mode: "insensitive" as const } }, { lastName: { contains: w, mode: "insensitive" as const } }, { preferredName: { contains: w, mode: "insensitive" as const } }] },
+        })),
+      },
+      include: TEACHER_INCLUDE,
+      take: 8,
+    }),
+    (t) => teacherName(t));
+
+const teacherName = (t: { user: { firstName: string | null; lastName: string | null; preferredName: string | null } }) =>
+  `${t.user.preferredName || t.user.firstName || ""} ${t.user.lastName ?? ""}`.trim();
+
+// ─── Reading exactly ────────────────────────────────────────────────────────
+
+const show = (v: unknown) => (v === null || v === undefined ? "(empty)" : typeof v === "string" ? v : JSON.stringify(v));
+
+async function loadProgram(slug: string) {
+  const p = await db.program.findUnique({ where: { slug }, include: EDITOR_PROGRAM_INCLUDE });
+  if (!p) return null;
+  const cov = await db.programCoverageHub.findMany({ where: { programSlug: p.slug }, select: { hubSlug: true } });
+  return { p, data: programToEditorData(p, cov.map((c) => c.hubSlug)) };
+}
+
+const courseLessons = async (courseId: string) =>
+  (await db.courseLesson.findMany({ where: { courseId }, orderBy: { sortOrder: "asc" }, select: { lessonId: true, groupLabel: true } }))
+    .map((l) => ({ id: l.lessonId, groupLabel: l.groupLabel }));
+
+const lessonTeachers = async (lessonId: string) =>
+  (await db.lessonTeacher.findMany({ where: { lessonId }, orderBy: { order: "asc" }, select: { userId: true } })).map((t) => t.userId);
+
+/** Each kind's state as read: what its version fingerprints. */
+const courseState = async (c: { id: string }) => ({ row: c, lessons: await courseLessons(c.id) });
+const lessonState = async (l: { id: string }) => ({ row: l, teachers: await lessonTeachers(l.id) });
+
+const versionLine = (v: string) => `\nVersion: ${v} (give it to edit_content when setting whole parts with changes).`;
+
+/** Items exactly as stored, so a change keeps everything it doesn't touch. */
+export async function readContent(kind: string, item?: string, field?: string): Promise<string> {
+  switch (kind) {
+    case "program": {
+      if (!item) return "Which program? Use list_programs to find it.";
+      const found = await findProgram(item);
+      if (typeof found === "string") return found;
+      const loaded = await loadProgram(found.slug);
+      if (!loaded) return "That program isn't there any more.";
+      const { p, data } = loaded;
+      const version = versionLine(versionOf(data));
+      if (!field || !owns(PROGRAM_FIELDS, field)) return `${p.name} (${p.slug}). Give one of these parts to read it exactly: ${Object.keys(PROGRAM_FIELDS).join(", ")}. program_settings shows them all as words.${version}`;
+      return `${p.name} (${p.slug}), ${PROGRAM_FIELDS[field].toLowerCase()} [${field}], exactly as stored (rich text is HTML):\n\n${show(editorFieldValue(data, field))}\n${version}`;
+    }
+    case "course": {
+      if (!item) {
+        const all = await db.course.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }], select: { title: true, slug: true, isActive: true } });
+        return `The courses:\n${all.map((c) => `- ${c.title} (${c.slug})${c.isActive ? "" : ", not active"}`).join("\n")}`;
+      }
+      const c = await findCourse(item);
+      if (typeof c === "string") return c;
+      const state = await courseState(c);
+      const titles = new Map((await db.lesson.findMany({ where: { id: { in: state.lessons.map((l) => l.id) } }, select: { id: true, slug: true, titleDisplayed: true } })).map((l) => [l.id, l]));
+      const parts = Object.keys(COURSE_FIELDS).filter((k) => k !== "lessonOrder").map((k) => `- ${COURSE_FIELDS[k]} [${k}]: ${show((c as Record<string, unknown>)[k])}`);
+      return `${c.title} (${c.slug}), exactly as stored (rich text is HTML):\n${parts.join("\n")}\n\nIts lessons in order (lessonOrder takes [{ id, groupLabel }] in this order):\n${state.lessons.map((l, i) => `${i + 1}. ${titles.get(l.id)?.titleDisplayed ?? "?"} (${titles.get(l.id)?.slug ?? "?"}) id ${l.id}${l.groupLabel ? `, under "${l.groupLabel}"` : ""}`).join("\n")}\n${versionLine(versionOf(state))}`;
+    }
+    case "lesson": {
+      if (!item) return "Which lesson? Read its course to find it.";
+      const l = await findLesson(item);
+      if (typeof l === "string") return l;
+      const state = await lessonState(l);
+      const parts = Object.keys(LESSON_FIELDS).map((k) => `- ${LESSON_FIELDS[k]} [${k}]: ${show(k === "teacherIds" ? state.teachers : (l as Record<string, unknown>)[k])}`);
+      return `${l.titleDisplayed} (${l.slug}), exactly as stored (rich text is HTML):\n${parts.join("\n")}\n${versionLine(versionOf(state))}`;
+    }
+    case "email": {
+      if (!item) return "Which email? email_templates lists them.";
+      const t = await db.emailTemplate.findUnique({ where: { slug: item.trim() } });
+      if (!t) return `There's no email "${item}". email_templates lists them.`;
+      const closed = emailClosed(t) ? "\nThis email can't be changed through the guide; admins change it on the site." : "";
+      return `${t.name} (${t.slug}), exactly as stored:\n- The subject [subject]: ${t.subject}\n- The email [body] (Markdown; {{name}} fills in a variable):\n${t.body}\n${closed || versionLine(versionOf(t))}`;
+    }
+    case "teacher": {
+      if (!item) {
+        const all = await db.teacherProfile.findMany({ include: TEACHER_INCLUDE });
+        return `The teacher pages:\n${all.map((t) => `- ${teacherName(t)}${t.slug ? ` (/teachers/${t.slug})` : ""}${t.isPublic ? "" : ", not shown"}`).join("\n")}`;
+      }
+      const t = await findTeacher(item);
+      if (typeof t === "string") return t;
+      return `${teacherName(t)}'s teacher page, exactly as stored:\n- The bio [bio]: ${show(t.bio)}\n- The photo [photoUrl]: ${show(t.photoUrl)}\n- Shown on the teachers page [isPublic]: ${t.isPublic ? "yes" : "no"}\n${versionLine(versionOf(t))}`;
+    }
+    default:
+      return "Read a program, course, lesson, email or teacher.";
+  }
+}
+
+// ─── Changing ───────────────────────────────────────────────────────────────
+
+type Actor = SaveActor & { name: string };
+
+/** The parts as given, after any finding of words; or why not. */
+function applyEdits(
+  kind: EditKind,
+  current: (key: string) => unknown,
+  changes: Record<string, unknown> | undefined,
+  replace: Replacement[] | undefined,
+): { body: Record<string, unknown> } | { error: string } {
+  const allowed = FIELDS[kind];
+  const body: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(changes ?? {})) {
+    if (!owns(allowed, k)) return { error: `"${k}" isn't something the ${kind} editor saves. The parts are: ${Object.keys(allowed).join(", ")}.` };
+    // A value is words, a number, on/off, a list, or empty: never an object
+    // (the older raw-HTML format is shown without cleaning).
+    if (v !== null && typeof v === "object" && !(Array.isArray(v) && LIST_PARTS.has(k))) return { error: `${allowed[k]} takes words, a number, on or off${LIST_PARTS.has(k) ? ", or a list" : ""}.` };
+    if (RICH[kind].includes(k) && v !== null && typeof v !== "string") return { error: `${allowed[k]} takes HTML, as read_content shows it.` };
+    body[k] = v;
+  }
+  for (const r of replace ?? []) {
+    if (!owns(allowed, r.field)) return { error: `"${r.field}" isn't something the ${kind} editor saves.` };
+    const from = r.field in body ? body[r.field] : current(r.field);
+    const done = replaceIn(from, String(r.find ?? ""), String(r.replace_with ?? ""));
+    if ("error" in done) return { error: `${allowed[r.field]}: ${done.error}` };
+    body[r.field] = done.value;
+  }
+  if (!Object.keys(body).length) return { error: "Nothing to change: give the changes, or words to find and replace." };
+  return { body };
+}
+
+const refused = (status: number, body: Record<string, unknown>) =>
+  `Nothing was saved. The editor said: ${typeof body.error === "string" ? body.error : `it couldn't save (${status}).`}`;
+
+/**
+ * Whole parts set with `changes` were written from a reading; refuse them if
+ * the item changed since (review, 2026-10-28: someone may have saved in the
+ * editor meanwhile). Finding words in a part (`replace`) works on the part as
+ * it is now, so it needs no version.
+ */
+function stale(changes: Record<string, unknown> | undefined, given: string | undefined, now: string): string | null {
+  if (!changes || !Object.keys(changes).length) return null;
+  if (!given) return "Nothing was saved. Read it first with read_content and give its version, so nothing newer is overwritten.";
+  if (given !== now) return "Nothing was saved: it changed since you read it (someone may have saved it on the site). Read it again with read_content, check, and make the change from that.";
+  return null;
+}
+
+/** Change one item through its editor's own save, and record what changed. */
+export async function editContent(
+  actor: Actor,
+  kind: string,
+  item: string,
+  changes: Record<string, unknown> | undefined,
+  replace: Replacement[] | undefined,
+  version?: string,
+): Promise<string> {
+  if (!["program", "course", "lesson", "email", "teacher"].includes(kind)) return "Change a program, course, lesson, email or teacher.";
+  const k = kind as EditKind;
+  let parts: ChangedPart[] = [];
+  let label = "";
+  let key = "";
+  let href: string | null = null;
+  const notes: string[] = [];
+
+  if (k === "program") {
+    const found = await findProgram(item);
+    if (typeof found === "string") return found;
+    const before = await loadProgram(found.slug);
+    if (!before) return "That program isn't there any more.";
+    const edits = applyEdits(k, (f) => editorFieldValue(before.data, f), changes, replace);
+    if ("error" in edits) return `Nothing was saved. ${edits.error}`;
+    const old = stale(changes, version, versionOf(before.data));
+    if (old) return old;
+    // The editor's own check too: refused if someone changed these parts meanwhile.
+    const _base = Object.fromEntries(Object.keys(edits.body).map((f) => [f, editorFieldValue(before.data, f)]));
+    const result = await saveProgram(actor, found.slug, { ...edits.body, _base });
+    if (result.status !== 200) return refused(result.status, result.body);
+    const slugNow = (result.body.slug as string) ?? found.slug;
+    const afterData = (result.body.editorData as typeof before.data | null) ?? (await loadProgram(slugNow))?.data ?? null;
+    parts = Object.keys(edits.body)
+      .map((f) => ({ label: PROGRAM_FIELDS[f], before: editorFieldValue(before.data, f), after: afterData ? editorFieldValue(afterData, f) : edits.body[f] }))
+      .filter((c) => !same(c.before, c.after));
+    label = (result.body.name as string) ?? before.p.name;
+    key = slugNow;
+    href = `/programs/${slugNow}`;
+    // What the editor says beside Save after the same change.
+    const sc = result.body.scheduleCleared as { sessions: number; rotations: number } | null;
+    if (sc?.sessions) notes.push(`${sc.sessions} upcoming session(s) on days it no longer meets were cleared, and the people scheduled for them are emailed.`);
+    if (sc?.rotations) notes.push(`${sc.rotations} rotation(s) that no longer fit were removed; the new days are set up in the Scheduler's Rotations tab.`);
+    const conflicts = result.body.seatConflicts as { message: string }[] | undefined;
+    if (conflicts?.length) notes.push(`Zoom: ${conflicts.map((c) => c.message).join(" ")}`);
+    if (typeof result.body.meetingsNotRenamed === "number" && result.body.meetingsNotRenamed > 0) notes.push("Zoom didn't take the new name yet for a session already set up; it's given the new name when the session opens.");
+    if (result.body.updateOffer) notes.push("The time, place or confirmation message changed, and the people registered haven't been told. Sending them an update is done in Registration (Message people).");
+  } else if (k === "course") {
+    const c = await findCourse(item);
+    if (typeof c === "string") return c;
+    const state = await courseState(c);
+    const before = c as Record<string, unknown>;
+    const edits = applyEdits(k, (f) => before[f], changes, replace);
+    if ("error" in edits) return `Nothing was saved. ${edits.error}`;
+    const old = stale(changes, version, versionOf(state));
+    if (old) return old;
+    const result = await saveCourse(c.slug, edits.body);
+    if (result.status !== 200) return refused(result.status, result.body);
+    const now = (await db.course.findUnique({ where: { id: c.id } })) as Record<string, unknown> | null;
+    const orderNow = await courseLessons(c.id);
+    parts = Object.keys(edits.body)
+      .map((f) => ({ label: COURSE_FIELDS[f], before: f === "lessonOrder" ? state.lessons : before[f], after: f === "lessonOrder" ? orderNow : now?.[f] }))
+      .filter((p) => !same(p.before, p.after));
+    label = (now?.title as string) ?? c.title;
+    key = (now?.slug as string) ?? c.slug;
+    href = `/course/${key}`;
+  } else if (k === "lesson") {
+    const l = await findLesson(item);
+    if (typeof l === "string") return l;
+    const state = await lessonState(l);
+    const before = l as Record<string, unknown>;
+    const edits = applyEdits(k, (f) => (f === "teacherIds" ? state.teachers : before[f]), changes, replace);
+    if ("error" in edits) return `Nothing was saved. ${edits.error}`;
+    const old = stale(changes, version, versionOf(state));
+    if (old) return old;
+    const result = await saveLesson(l.slug, edits.body);
+    if (result.status !== 200) return refused(result.status, result.body);
+    const now = (await db.lesson.findUnique({ where: { id: l.id } })) as Record<string, unknown> | null;
+    const teachersNow = await lessonTeachers(l.id);
+    parts = Object.keys(edits.body)
+      .map((f) => ({ label: LESSON_FIELDS[f], before: f === "teacherIds" ? state.teachers : before[f], after: f === "teacherIds" ? teachersNow : now?.[f] }))
+      .filter((p) => !same(p.before, p.after));
+    label = (now?.titleDisplayed as string) ?? l.titleDisplayed;
+    key = (now?.slug as string) ?? l.slug;
+    href = `/lessons/${key}`;
+  } else if (k === "email") {
+    const t = await db.emailTemplate.findUnique({ where: { slug: item.trim() } });
+    if (!t) return `There's no email "${item}". email_templates lists them.`;
+    if (emailClosed(t)) return "Nothing was saved. The sign-in emails and the email about content changes can't be changed through the guide; admins change them on the site.";
+    const before = t as Record<string, unknown>;
+    const edits = applyEdits(k, (f) => before[f], changes, replace);
+    if ("error" in edits) return `Nothing was saved. ${edits.error}`;
+    const old = stale(changes, version, versionOf(t));
+    if (old) return old;
+    const b = edits.body;
+    const result = await saveEmailTemplate(t.slug, {
+      subject: typeof b.subject === "string" ? b.subject : undefined,
+      body: typeof b.body === "string" ? b.body : undefined,
+      updatedById: actor.id,
+    });
+    if (result.status !== 200) return refused(result.status, result.body);
+    parts = Object.keys(b).map((f) => ({ label: EMAIL_FIELDS[f], before: before[f], after: result.body[f] })).filter((p) => !same(p.before, p.after));
+    label = t.name;
+    key = t.slug;
+    href = `/admin/emails/${t.slug}`;
+  } else {
+    const t = await findTeacher(item);
+    if (typeof t === "string") return t;
+    const before = t as unknown as Record<string, unknown>;
+    const edits = applyEdits(k, (f) => before[f], changes, replace);
+    if ("error" in edits) return `Nothing was saved. ${edits.error}`;
+    const old = stale(changes, version, versionOf(t));
+    if (old) return old;
+    const result = await saveTeacherProfile(t.userId, edits.body);
+    if (result.status !== 200) return refused(result.status, result.body);
+    parts = Object.keys(edits.body).map((f) => ({ label: TEACHER_FIELDS[f], before: before[f], after: result.body[f] })).filter((p) => !same(p.before, p.after));
+    label = teacherName(t);
+    key = t.userId;
+    href = t.slug ? `/teachers/${t.slug}` : null;
+  }
+
+  if (!parts.length) return "Saved, but nothing was different from before, so there was nothing to record.";
+  const recorded = await keep({ userId: actor.id, userName: actor.name, kind: k, itemKey: key, itemLabel: label, itemHref: href, changes: parts });
+  return [
+    `Saved: ${parts.map((p) => p.label.toLowerCase()).join(", ")} of ${label}. It's on the site now${href ? ` (${href})` : ""}${recorded ? ", and Jesse has been sent the change." : "."}`,
+    ...(recorded ? [] : [NOT_RECORDED]),
+    ...notes,
+  ].join("\n");
+}
+
+const NOT_RECORDED = "The change was made, but its record didn't save, so Jesse hasn't been told. Tell him what changed.";
+
+/** Keep the change and tell Jesse; false if the record couldn't be written. */
+async function keep(input: Parameters<typeof recordContentChange>[0]): Promise<boolean> {
+  try {
+    await recordContentChange(input);
+    return true;
+  } catch (e) {
+    console.error("[guideEdits] recording a change failed", e);
+    return false;
+  }
+}
+
+/** Where words are in the site's pages. */
+export async function findWords(words: string): Promise<string> {
+  const found = await findPageWords(words);
+  if (!found) return "Give at least a few words to find.";
+  if (!found.length) return `"${words}" isn't in the site's pages as written. It may be in a program, course, lesson, email or teacher page instead (those are changed with edit_content), or the words may differ slightly; try fewer of them.`;
+  return found
+    .map((f) => `${f.file} line ${f.line}${pageAddress(f.file) ? ` (the page ${pageAddress(f.file)})` : ""}:\n${f.context}`)
+    .join("\n\n");
+}
+
+/** Change words on a page: words only, committed to the site. */
+export async function changeWords(actor: Actor, file: string, find: string, replaceWith: string): Promise<string> {
+  let r;
+  try {
+    r = await changePageWords({ file, find, replaceWith });
+  } catch (e) {
+    if (e instanceof NoGithubError) return "Changing page words isn't set up yet (the site needs its GitHub key). Nothing changed. Tell Jesse.";
+    throw e;
+  }
+  if (!r.ok) return r.error;
+  const recorded = await keep({
+    userId: actor.id,
+    userName: actor.name,
+    kind: "page",
+    itemKey: file,
+    itemLabel: r.page ?? file,
+    itemHref: r.page,
+    changes: [{ label: "The words", before: r.before, after: r.after }],
+    commitUrl: r.commitUrl,
+  });
+  return `Changed. The new words are on ${r.page ?? "the site"} in about two minutes, once the site has rebuilt${recorded ? ", and Jesse has been sent the change." : `. ${NOT_RECORDED}`}`;
+}

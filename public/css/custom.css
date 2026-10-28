@@ -23100,6 +23100,22 @@ html { scroll-padding-top: 88px; }
   overflow-wrap: anywhere;
 }
 
+/* ── Content changes (/admin/content-changes/[id], 2026-10-28) ───────
+   A change's parts in the form-submission entries above: each part's
+   Before and After as plain words, the old words quieter. */
+.adm-change__links {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-app);
+}
+.adm-change__when {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-app-meta);
+  font-weight: 600;
+  color: var(--rim-text-muted);
+}
+.adm-change__when + .adm-forms__message { margin-top: 4px; }
+.adm-change__before { color: var(--rim-text-muted); }
+
 /* ===================================================================
    THE SHARED FILTER GRAMMAR, 2026-10-20 (components/FilterBar.tsx)
    The Scheduler's pills, View picker and tabs, used on every team and

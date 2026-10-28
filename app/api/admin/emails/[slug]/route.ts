@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { renderTemplateToHtml } from "@/lib/email";
+import { saveEmailTemplate } from "@/lib/contentSaves";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -16,36 +15,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { slug } = await params;
   const { subject, body, enabled, userId } = await req.json();
 
-  const template = await db.emailTemplate.findUnique({ where: { slug } });
-  if (!template) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const updated = await db.emailTemplate.update({
-    where: { slug },
-    data: {
-      subject,
-      body,
-      enabled,
-      updatedById: userId || null,
-    },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      subject: true,
-      body: true,
-      enabled: true,
-      updatedAt: true,
-      updatedBy: { select: { firstName: true, lastName: true } },
-    },
-  });
-
-  return NextResponse.json({
-    ...updated,
-    updatedAt: updated.updatedAt.toISOString(),
-    updatedBy: updated.updatedBy
-      ? `${updated.updatedBy.firstName ?? ""} ${updated.updatedBy.lastName ?? ""}`.trim()
-      : null,
-  });
+  // The save itself (lib/contentSaves.ts) is shared with the RIM Guide.
+  const result = await saveEmailTemplate(slug, { subject, body, enabled, updatedById: userId });
+  return NextResponse.json(result.body, { status: result.status });
 }
 
 // ── POST /api/admin/emails/[slug]/preview is handled separately ───────────────

@@ -479,6 +479,9 @@ export default function ProgramEditor({
   // What a schedule change cleared (sessions on days the program no longer
   // meets, and rotations for those weekdays), said beside Save (2026-10-16).
   const [scheduleCleared, setScheduleCleared] = useState<{ sessions: number; rotations: number } | null>(null);
+  // Zoom meetings already made that kept the old name after a rename
+  // (lib/programSave.ts, 2026-10-28), said at the top of the page.
+  const [meetingsNotRenamed, setMeetingsNotRenamed] = useState(0);
   // Pick up the overlap warning from a just-created program (see the create
   // branch of save). Read once, then cleared.
   useEffect(() => {
@@ -917,6 +920,7 @@ export default function ProgramEditor({
         }
         setSeatConflicts(updated.seatConflicts ?? []);
         setScheduleCleared(updated.scheduleCleared ?? null);
+        setMeetingsNotRenamed(typeof updated.meetingsNotRenamed === "number" ? updated.meetingsNotRenamed : 0);
         if (updated.guestAccessKey && !guestAccessKey) {
           setGuestAccessKey(updated.guestAccessKey);
         }
@@ -1022,6 +1026,12 @@ export default function ProgramEditor({
               set up the new days in the Scheduler&rsquo;s Rotations tab.
             </>
           )}
+        </div>
+      )}
+      {meetingsNotRenamed > 0 && (
+        <div className="pe-msg" role="status" style={{ background: "var(--color-warning-bg)", color: "var(--color-warning)" }}>
+          The new name is saved. Zoom didn&rsquo;t take it yet for {meetingsNotRenamed === 1 ? "the session already set up" : `the ${meetingsNotRenamed} sessions already set up`},
+          so {meetingsNotRenamed === 1 ? "it is" : "they are"} given the new name when the session opens.
         </div>
       )}
       {seatConflicts.length > 0 && (
@@ -1289,7 +1299,7 @@ export default function ProgramEditor({
             </button>
             {/* The answer beside the button, and it stays (2026-10-19: it showed at
                 the top of a long page for three seconds). */}
-            <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={justCreated && !savedAt ? `Created. It’s saved.${seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}` : `Saved at ${savedAt}.${scheduleCleared || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}${updateOffer ? " The people registered haven’t heard: see below." : ""}`} problem={error} />
+            <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={justCreated && !savedAt ? `Created. It’s saved.${seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}` : `Saved at ${savedAt}.${scheduleCleared || meetingsNotRenamed > 0 || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}${updateOffer ? " The people registered haven’t heard: see below." : ""}`} problem={error} />
           </div>
           {updateOffer && <UpdatePanel slug={updateOffer.slug} offer={updateOffer} onDone={closeUpdate} />}
           {updateAnswer && <p className="pe-update__done" role="status">{updateAnswer}</p>}

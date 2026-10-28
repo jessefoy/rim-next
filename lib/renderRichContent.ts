@@ -22,9 +22,34 @@ const BN_BG_COLORS: Record<string, string> = {
   yellow: "#fbf3db", green: "#ddedea", blue: "#ddebf1", purple: "#eae4f2", pink: "#f4dfeb",
 }
 
-/** Resolve a BlockNote color token to a CSS color value. */
-function resolveTextColor(c: string): string { return BN_TEXT_COLORS[c] ?? c }
-function resolveBgColor(c: string): string { return BN_BG_COLORS[c] ?? c }
+/** Resolve a BlockNote color token to a CSS color value (a named token or a hex code; anything else is dropped). */
+const HEX = /^#[0-9a-f]{3,8}$/i
+function resolveTextColor(c: string): string { return BN_TEXT_COLORS[c] ?? (HEX.test(c) ? c : "inherit") }
+function resolveBgColor(c: string): string { return BN_BG_COLORS[c] ?? (HEX.test(c) ? c : "transparent") }
+
+// ── Escaping (2026-10-28) ────────────────────────────────────────────────────
+// Block text is plain text: every value written into the HTML is escaped
+// (an entity already written, such as &rsquo;, is kept), links and images
+// take only web, mail and phone addresses, and sizes and names are checked.
+// Before this, text or a link stored in the block format was written out as
+// it was, so a block holding markup ran it on the page (review of the RIM
+// Guide's content editing found it; the editors could store it too).
+function esc(v: unknown): string {
+  return String(v ?? "")
+    .replace(/&(?!#?[a-z0-9]+;)/gi, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+function safeUrl(v: unknown): string {
+  const u = String(v ?? "").trim()
+  return /^(https?:|mailto:|tel:|\/(?!\/)|#)/i.test(u) ? esc(u) : "#"
+}
+const word = (v: unknown, fallback: string) => (typeof v === "string" && /^[a-zA-Z]+$/.test(v) ? v : fallback)
+const whole = (v: unknown, min: number, max: number) => {
+  const n = Math.round(Number(v))
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : null
+}
 
 // ── Format helpers ────────────────────────────────────────────────────────────
 
@@ -59,10 +84,9 @@ function renderInlineContent(content: any[]): string {
   return (content || []).map((c: any) => {
     if (!c) return ""
     if (c.type === "link") {
-      const href = c.href ?? "#"
-      return `<a href="${href}">${renderInlineContent(c.content || [])}</a>`
+      return `<a href="${safeUrl(c.href)}">${renderInlineContent(c.content || [])}</a>`
     }
-    let t: string = c.text ?? ""
+    let t: string = esc(c.text ?? "")
     if (!t) return ""
     if (c.styles?.bold)          t = `<strong>${t}</strong>`
     if (c.styles?.italic)        t = `<em>${t}</em>`
@@ -80,8 +104,8 @@ function renderInlineContent(content: any[]): string {
 
 function blockStyleAttr(block: any): string {
   const styles: string[] = []
-  const align = block.props?.textAlignment
-  if (align && align !== "left") styles.push(`text-align:${align}`)
+  const align = word(block.props?.textAlignment, "left")
+  if (align !== "left") styles.push(`text-align:${align}`)
   if (block.props?.textColor) styles.push(`color:${resolveTextColor(block.props.textColor)}`)
   if (block.props?.backgroundColor) styles.push(`background-color:${resolveBgColor(block.props.backgroundColor)}`)
   return styles.length > 0 ? ` style="${styles.join(";")}"` : ""
@@ -103,7 +127,7 @@ function renderSingleBlock(block: any): string {
 
   switch (block.type) {
     case "heading": {
-      const level = block.props?.level ?? 2
+      const level = whole(block.props?.level, 1, 6) ?? 2
       return `<h${level}${bStyle}>${inner}</h${level}>${children}`
     }
     case "bulletListItem":
@@ -122,20 +146,21 @@ function renderSingleBlock(block: any): string {
     case "image": {
       const url = block.props?.url
       if (!url) return children || ""
-      const alt = block.props?.caption || block.props?.name || ""
-      const align = block.props?.textAlignment || "left"
-      const width = block.props?.previewWidth ? `width="${block.props.previewWidth}"` : ""
+      const alt = esc(block.props?.caption || block.props?.name || "")
+      const align = word(block.props?.textAlignment, "left")
+      const w = whole(block.props?.previewWidth, 1, 4000)
+      const width = w ? `width="${w}"` : ""
       const alignStyle = align === "center" ? "text-align:center" : align === "right" ? "text-align:right" : ""
-      const imgTag = `<img src="${url}" alt="${alt}" ${width} style="max-width:100%;border-radius:4px" />`
-      const caption = block.props?.caption ? `<figcaption style="font-size:14px;color:#777;margin-top:4px">${block.props.caption}</figcaption>` : ""
+      const imgTag = `<img src="${safeUrl(url)}" alt="${alt}" ${width} style="max-width:100%;border-radius:4px" />`
+      const caption = block.props?.caption ? `<figcaption style="font-size:14px;color:#777;margin-top:4px">${esc(block.props.caption)}</figcaption>` : ""
       return `<figure style="${alignStyle};margin:16px 0">${imgTag}${caption}</figure>${children}`
     }
     case "file": {
       const url = block.props?.url
       if (!url) return children || ""
-      const name = block.props?.name || "Download"
-      const caption = block.props?.caption ? `<div class="rim-file__caption">${block.props.caption}</div>` : ""
-      return `<div class="rim-file"><a class="rim-file__link" href="${url}" target="_blank" rel="noopener noreferrer"><span class="rim-file__icon" aria-hidden="true">📎</span><span class="rim-file__name">${name}</span></a>${caption}</div>${children}`
+      const name = esc(block.props?.name || "Download")
+      const caption = block.props?.caption ? `<div class="rim-file__caption">${esc(block.props.caption)}</div>` : ""
+      return `<div class="rim-file"><a class="rim-file__link" href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer"><span class="rim-file__icon" aria-hidden="true">📎</span><span class="rim-file__name">${name}</span></a>${caption}</div>${children}`
     }
     case "table": {
       const rows = block.content?.rows || []
@@ -149,8 +174,10 @@ function renderSingleBlock(block: any): string {
             ? renderInlineContent(cell.content)
             : (cell.content ? renderInlineContent(cell.content) : "")
           const attrs: string[] = []
-          if (cell.props?.colspan && cell.props.colspan > 1) attrs.push(`colspan="${cell.props.colspan}"`)
-          if (cell.props?.rowspan && cell.props.rowspan > 1) attrs.push(`rowspan="${cell.props.rowspan}"`)
+          const colspan = whole(cell.props?.colspan, 1, 100)
+          const rowspan = whole(cell.props?.rowspan, 1, 100)
+          if (colspan && colspan > 1) attrs.push(`colspan="${colspan}"`)
+          if (rowspan && rowspan > 1) attrs.push(`rowspan="${rowspan}"`)
           // Cell-level background and text colors from advanced tables
           const cellStyles: string[] = []
           if (cell.props?.backgroundColor) cellStyles.push(`background-color:${resolveBgColor(cell.props.backgroundColor)}`)
@@ -171,29 +198,29 @@ function renderSingleBlock(block: any): string {
     case "pullQuote": {
       const attr = block.props?.attribution
       const body = inner
-      const attrHtml = attr ? `<cite class="rim-el-pull-quote__attribution">${attr}</cite>` : ""
+      const attrHtml = attr ? `<cite class="rim-el-pull-quote__attribution">${esc(attr)}</cite>` : ""
       return `<div class="rim-el-pull-quote"><span class="rim-el-pull-quote__mark" aria-hidden="true">&ldquo;</span><div class="rim-el-pull-quote__text">${body}</div>${attrHtml}</div>`
     }
     case "verseQuote": {
       const attr = block.props?.attribution
-      const attrHtml = attr ? `<cite class="rim-el-verse__attribution">${attr}</cite>` : ""
+      const attrHtml = attr ? `<cite class="rim-el-verse__attribution">${esc(attr)}</cite>` : ""
       return `<div class="rim-el-verse lp-verse-quote"><div class="rim-el-verse__text">${inner}</div>${attrHtml}</div>${children}`
     }
     case "practiceSuggestion": {
       const title = block.props?.title ?? ""
-      const titleHtml = title ? `<span class="rim-el-practice__title">${title}</span>` : ""
+      const titleHtml = title ? `<span class="rim-el-practice__title">${esc(title)}</span>` : ""
       // Body = container children. Legacy inline content falls back.
       const body = children || (inner ? `<p>${inner}</p>` : "")
       return `<div class="rim-el-practice"><div class="rim-el-practice__header"><span class="rim-el-practice__eyebrow">Practice</span>${titleHtml}</div><div class="rim-el-practice__body">${body}</div></div>`
     }
     case "reflection": {
       const question = block.props?.question ?? ""
-      const qHtml = question ? `<div class="rim-el-reflection__question">${question}</div>` : ""
+      const qHtml = question ? `<div class="rim-el-reflection__question">${esc(question)}</div>` : ""
       const body = children || (inner ? `<p>${inner}</p>` : "")
       return `<div class="rim-el-reflection">${qHtml}<div class="rim-el-reflection__body">${body}</div></div>`
     }
     case "callout": {
-      const variant = block.props?.variant ?? "note"
+      const variant = word(block.props?.variant, "note")
       const title   = block.props?.title ?? ""
       const body    = children || inner
 
@@ -211,7 +238,7 @@ function renderSingleBlock(block: any): string {
         question: "?", warning: "⚠", info: "ℹ",
       }
       const icon = iconMap[variant] ?? "💡"
-      const titleHtml = title ? `<span class="lp-callout-block__title">${title}</span>` : ""
+      const titleHtml = title ? `<span class="lp-callout-block__title">${esc(title)}</span>` : ""
       const header = `<div class="lp-callout-block__header"><span class="lp-callout-block__icon" aria-hidden="true">${icon}</span>${titleHtml}</div>`
       return `<div class="lp-callout-block lp-callout-block--${variant} rim-el-note rim-el-note--${variant}">${header}<div class="lp-callout-block__body">${body}</div></div>`
     }
@@ -286,12 +313,12 @@ export function renderBlockNoteHtml(json: any): string {
 
 function extractTiptapText(json: any): string {
   if (!json || typeof json !== "object") return ""
-  if (typeof json.text === "string") return json.text
+  if (typeof json.text === "string") return esc(json.text)
   if (Array.isArray(json.content)) {
     const children = json.content.map(extractTiptapText).filter(Boolean).join(" ")
     const tag = json.type
     if (tag === "paragraph" || tag === "doc") return children ? `<p>${children}</p>` : ""
-    if (tag === "heading") return `<h${json.attrs?.level ?? 2}>${children}</h${json.attrs?.level ?? 2}>`
+    if (tag === "heading") { const l = whole(json.attrs?.level, 1, 6) ?? 2; return `<h${l}>${children}</h${l}>` }
     if (tag === "bulletList" || tag === "orderedList") return children
     if (tag === "listItem") return `<li>${children}</li>`
     if (tag === "blockquote") return `<blockquote>${children}</blockquote>`

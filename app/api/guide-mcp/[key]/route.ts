@@ -26,6 +26,8 @@ import {
   viewerCan,
   type GuideViewer,
 } from "@/lib/guideData";
+import { canEditContent } from "@/lib/contentChanges";
+import { changeWords, editContent, findWords, readContent, type Replacement } from "@/lib/guideEdits";
 
 /**
  * The RIM Guide connector (2026-10-27): a read-only remote MCP server that the
@@ -33,7 +35,10 @@ import {
  * signs in with their own RIM account (lib/guideAuth.ts) and the guide reads
  * what they can read on the site: the guide's topics, the design docs, every
  * signed-in screen's words and code (lib/guideContent.ts), and RIM's data
- * through the site's own gates (lib/guideData.ts). Nothing here writes.
+ * through the site's own gates (lib/guideData.ts). Read-only, except for
+ * Content editors (the CONTENT_EDITOR role, 2026-10-28): they also change the
+ * site's content through the editors' own saves and the pages' words
+ * (lib/guideEdits.ts), and each change is recorded and emailed to Jesse.
  *
  * Added once by a workspace owner (Organization settings > Connectors > Add >
  * Custom > Web) at https://<site>/api/guide-mcp/<GUIDE_CONNECTOR_KEY>; each
@@ -43,6 +48,10 @@ import {
  * Streamable HTTP, stateless: each POST carries JSON-RPC and gets JSON back;
  * there is no event stream (GET is 405) and no session.
  */
+
+// A program saved through the guide sends the same team emails after the
+// response as the editor's save, which needs this much room (2026-10-28).
+export const maxDuration = 60;
 
 const PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
@@ -187,6 +196,54 @@ const REGISTRY_TOOLS: Tool[] = [
   },
 ];
 
+const WRITES = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
+const KIND = { type: "string", enum: ["program", "course", "lesson", "email", "teacher"], description: "What kind of thing." };
+
+/** Content editors only: change the site's content (lib/guideEdits.ts). */
+const EDIT_TOOLS: Tool[] = [
+  {
+    name: "read_content",
+    title: "Read content exactly",
+    description: "A program's part, a course with its lessons, a lesson, an email or a teacher page exactly as stored (rich text as HTML), to change it without losing anything. Without an item, lists the courses or teacher pages. For a program, give the part (program_settings shows them all as words).",
+    inputSchema: obj({ kind: KIND, item: s("Its name or web address (for an email, its name in brackets from email_templates)."), field: s("For a program: the part's name in brackets from program_settings, such as \"description\".") }, ["kind"]),
+    annotations: READ_ONLY,
+  },
+  {
+    name: "edit_content",
+    title: "Change content",
+    description: "Changes a program, course, lesson, email or teacher page through its editor's own save, so it does exactly what saving in the editor does (a program's new name reaches its registrations, donations and Zoom meetings; a schedule change clears sessions on days it no longer meets). Give `replace` to change some words inside a part, or `changes` (with the version read_content gave) to set whole parts, by the names read_content shows. The sign-in emails can't be changed. Before calling it, show the person the change, before and after, and wait for their yes. Every change is recorded and emailed to Jesse.",
+    inputSchema: obj(
+      {
+        kind: KIND,
+        item: s("Its name or web address (for an email, its name in brackets)."),
+        replace: {
+          type: "array",
+          description: "Words to change inside a part: each must appear exactly once in that part.",
+          items: obj({ field: s("The part, such as \"description\" or \"tagline\"."), find: s("The words as they are now."), replace_with: s("The new words.") }, ["field", "find", "replace_with"]),
+        },
+        changes: { type: "object", description: "Whole parts to set, by name: { \"tagline\": \"…\" }. Rich text is HTML. Values take the forms read_content shows. Needs version." },
+        version: s("With changes: the version read_content gave, so nothing saved since is overwritten."),
+      },
+      ["kind", "item"],
+    ),
+    annotations: WRITES,
+  },
+  {
+    name: "find_page_words",
+    title: "Find words on the site's pages",
+    description: "Finds where words are written in the site's pages (Home, About and every other page, and each screen's labels), with the file, line and the lines around them. Use it before change_page_words. Words in a program, course, lesson, email or teacher page are changed with edit_content instead.",
+    inputSchema: obj({ words: s("A few words exactly as the page shows them.") }, ["words"]),
+    annotations: READ_ONLY,
+  },
+  {
+    name: "change_page_words",
+    title: "Change words on a page",
+    description: "Changes words written into one of the site's pages. Words only: anything that would change a link, a style or the code is refused. The words must appear once in the file; include more of the words around them if not. It's on the site about two minutes later. Before calling it, show the person the change, before and after, and wait for their yes. Every change is recorded and emailed to Jesse.",
+    inputSchema: obj({ file: s("The file from find_page_words, such as \"app/about/page.tsx\"."), find: s("The words as they are now."), replace_with: s("The new words.") }, ["file", "find", "replace_with"]),
+    annotations: { ...WRITES, openWorldHint: true },
+  },
+];
+
 async function toolsFor(v: GuideViewer): Promise<Tool[]> {
   return [
     ...OPEN_TOOLS,
@@ -194,6 +251,7 @@ async function toolsFor(v: GuideViewer): Promise<Tool[]> {
     ...(viewerCan.registration(v) ? REGISTRATION_TOOLS : []),
     ...(viewerCan.emails(v) ? EMAIL_TOOLS : []),
     ...(viewerCan.registry(v) ? REGISTRY_TOOLS : []),
+    ...(canEditContent(v.roles) ? EDIT_TOOLS : []),
   ];
 }
 
@@ -203,7 +261,9 @@ const text = (t: string, isError = false) => ({ content: [{ type: "text", text: 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 
-async function callTool(name: string, args: Record<string, unknown>, v: GuideViewer) {
+type Viewer = GuideViewer & { name: string };
+
+async function callTool(name: string, args: Record<string, unknown>, v: Viewer) {
   switch (name) {
     case "guide_topics": {
       const topics = await listGuideTopics();
@@ -247,12 +307,23 @@ async function callTool(name: string, args: Record<string, unknown>, v: GuideVie
       return text(await findMembers(v, str(args.query)));
     case "member_record":
       return text(await memberRecord(v, str(args.email)));
+    case "read_content":
+      return text(await readContent(str(args.kind), str(args.item) || undefined, str(args.field) || undefined));
+    case "edit_content": {
+      const changes = args.changes && typeof args.changes === "object" && !Array.isArray(args.changes) ? (args.changes as Record<string, unknown>) : undefined;
+      const replace = Array.isArray(args.replace) ? (args.replace as Replacement[]) : undefined;
+      return text(await editContent({ id: v.userId, roles: v.roles, name: v.name }, str(args.kind), str(args.item), changes, replace, str(args.version) || undefined));
+    }
+    case "find_page_words":
+      return text(await findWords(str(args.words)));
+    case "change_page_words":
+      return text(await changeWords({ id: v.userId, roles: v.roles, name: v.name }, str(args.file), str(args.find), str(args.replace_with)));
     default:
       return null;
   }
 }
 
-async function answer(msg: RpcMessage, v: GuideViewer): Promise<object | null> {
+async function answer(msg: RpcMessage, v: Viewer): Promise<object | null> {
   if (!msg || typeof msg !== "object") {
     return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid Request" } };
   }
@@ -268,7 +339,7 @@ async function answer(msg: RpcMessage, v: GuideViewer): Promise<object | null> {
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "rim-guide", title: "RIM Guide", version: "2.0.0" },
-        instructions: `How Rooted in Mindfulness's website and apps work and why, for RIM's volunteers, read as ${v.firstName || "the signed-in volunteer"} with what their account can see. Search the guide and design docs before answering; quote a screen's exact words with screen_words; read RIM's data with the program, registration, team and member tools. Read-only.`,
+        instructions: `How Rooted in Mindfulness's website and apps work and why, for RIM's volunteers, read as ${v.firstName || "the signed-in volunteer"} with what their account can see. Search the guide and design docs before answering; quote a screen's exact words with screen_words; read RIM's data with the program, registration, team and member tools. ${canEditContent(v.roles) ? "As a Content editor they may also change the site's content (edit_content, change_page_words): show each change before and after and wait for their yes." : "Read-only."}`,
       });
     }
     case "ping":
@@ -295,7 +366,7 @@ async function answer(msg: RpcMessage, v: GuideViewer): Promise<object | null> {
 }
 
 /** Who is asking, from their sign-in, with roles read now; null asks them to sign in. */
-async function viewerFrom(request: NextRequest): Promise<GuideViewer | null> {
+async function viewerFrom(request: NextRequest): Promise<Viewer | null> {
   const auth = request.headers.get("authorization") ?? "";
   const m = auth.match(/^Bearer\s+(\S+)$/i);
   if (!m) return null;
@@ -303,10 +374,18 @@ async function viewerFrom(request: NextRequest): Promise<GuideViewer | null> {
   if (!access) return null;
   const user = await db.user.findUnique({
     where: { id: access.userId },
-    select: { id: true, firstName: true, preferredName: true, roles: true, sectionGrants: true, archivedAt: true },
+    select: { id: true, firstName: true, preferredName: true, lastName: true, email: true, roles: true, sectionGrants: true, archivedAt: true },
   });
   if (!user || user.archivedAt) return null;
-  return { userId: user.id, firstName: user.preferredName || user.firstName || "", roles: user.roles, sectionGrants: user.sectionGrants };
+  const firstName = user.preferredName || user.firstName || "";
+  return {
+    userId: user.id,
+    firstName,
+    // For the record of a change: who made it.
+    name: `${firstName} ${user.lastName ?? ""}`.trim() || user.email,
+    roles: user.roles,
+    sectionGrants: user.sectionGrants,
+  };
 }
 
 function signInPlease(key: string, hadToken: boolean) {

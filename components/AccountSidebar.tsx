@@ -39,6 +39,7 @@ import {
   LogOut,
   UserPlus,
   Inbox,
+  History,
 } from "lucide-react";
 
 interface Props { roles: string[]; showTeams: boolean; showTeaching?: boolean; notificationsUnread?: number; }
@@ -74,6 +75,8 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
   { label: "Import members", href: "/admin/import-legacy", icon: UserPlus,  adminOnly: true   },
   { label: "Teams",        href: "/admin/hubs",          icon: Layers,      adminOnly: true   },
   { label: "Emails",       href: "/admin/emails",        icon: Mail,        adminOnly: true   },
+  // Every change Content editors make through the RIM Guide (2026-10-28).
+  { label: "Content changes", href: "/admin/content-changes", icon: History, adminOnly: true },
   { label: "Google Files", href: "/admin/google-files",  icon: ShieldCheck, adminOnly: true   },
 ];
 

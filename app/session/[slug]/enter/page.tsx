@@ -34,7 +34,7 @@ import { db } from "@/lib/db";
 import { getActiveSessionWindow } from "@/lib/sessionWindow";
 import { resolveSessionRole } from "@/lib/sessionAuth";
 import { getOrCreateSessionMeeting, NoSeatAvailableError } from "@/lib/sessionMeeting";
-import { getMeeting, ensureSeatHostKey, deleteMeeting } from "@/lib/zoom";
+import { getMeeting, ensureSeatHostKey, deleteMeeting, setMeetingTopic } from "@/lib/zoom";
 import { sessionDisplayName } from "@/lib/sessionIdentity";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
@@ -321,6 +321,13 @@ export default async function ZoomEnterPage({
       const registrationOn =
         fetched?.settings?.approval_type === 0 || fetched?.settings?.approval_type === 1;
       if (fetched && !registrationOn) {
+        // A rename Zoom didn't take when it was saved (lib/programSave.ts)
+        // is given now, so the room carries the program's name.
+        if (fetched.topic !== program.name.slice(0, 200)) {
+          await setMeetingTopic(m.zoomMeetingId, program.name).catch((err) =>
+            console.error("[session/enter] meeting rename failed", m.zoomMeetingId, err),
+          );
+        }
         return { meeting: m, joinUrl: fetched.join_url };
       }
       console.warn(

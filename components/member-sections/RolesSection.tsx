@@ -5,7 +5,7 @@ import { useState } from "react";
 const ROLE_GROUPS = [
   {
     label: "Access & tools",
-    roles: ["ADMIN", "REGISTRAR", "TEACHER", "HOST_MANAGER"],
+    roles: ["ADMIN", "REGISTRAR", "TEACHER", "HOST_MANAGER", "CONTENT_EDITOR"],
   },
   {
     label: "Sangha-wide authority",
@@ -20,6 +20,7 @@ const ROLE_LABELS: Record<string, string> = {
   TEACHER: "Teacher",
   HOST_MANAGER: "Scheduling manager",
   GUIDING_TEACHER: "Guiding teacher",
+  CONTENT_EDITOR: "Content editor",
 };
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
@@ -27,6 +28,7 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
   REGISTRAR:      "Member registry + Program Manager tool (also joins the Registrar team)",
   TEACHER:        "Course Manager tool (also joins the Courses team)",
   HOST_MANAGER:   "Manage rotations and coverage across every team’s schedule",
+  CONTENT_EDITOR: "Change the site's content through the RIM Guide: programs, courses, lessons, emails, teacher pages and the words on every page. Each change is listed under Content changes and emailed to Jesse.",
   GUIDING_TEACHER:"Dharma authority — can enter and moderate every hub across the sangha. Does NOT include technical / configuration admin.",
 };
 
