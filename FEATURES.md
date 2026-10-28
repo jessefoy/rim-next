@@ -13,6 +13,16 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ---
 
+## October 28, 2026 (later): setting up a program, step by step
+
+- **+ Add Program walks through the setup one question at a time** (`/tools/programs/new` → `/tools/programs/drafts/[id]`): About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, Where it appears. A trail of the answers so far; Back, Skip for what's optional; tap any answer to go back to it. It is a **draft, saved as you go**: no one sees it and no team is told until **Publish**, after a review in sentences that says what publishing does. Drafts show first on the Programs list ("Being set up"). See `RIM_ProgramEditor.md`.
+- **A program's page** (`/tools/programs/[slug]/edit`, Edit on the list): its setup as plain sentences, each section with **Change**, which walks that section's questions and then says **what the change would do** before it is saved (sessions that go or arrive, people taken off them, rotations that end, teams told, the people registered). The one-page editor is retired.
+- **The schedule can't be set wrong:** only the days it meets can be chosen for the first session; a series ends Never, On a date, or After a number of sessions, counted in real sessions; Daily and every 3 or more weeks are no longer offered. Calendar files carry each session's own length, the true first session and the end.
+- **The order of programs** (`/tools/programs/order`, "How each section is ordered"): by when each meets, with "Show it first in its section" to lift one; the same order on Programs & Events, the groups page, the Programs list and the guide.
+- **A series says when it runs:** "Thursdays, Dec 3 to 17", or "Thursdays, from Dec 3" before an ongoing series begins, on its page, the cards, the confirmation and reminder emails, Registration and the guide.
+- **The Scheduler's words** say team, never hub, and plain words for covering; errors say what didn't happen. **The guiding teacher leads every team on the Scheduler** (Rotations, putting people on and taking them off, Reset this team), as everywhere else in a team's space.
+- **The "Setting up a program" tutorial** is redrawn for the walk-through (14 steps), and the RIM Guide's topics describe drafts and a program's page.
+
 ## October 28, 2026: the RIM Guide signs each volunteer in, edits content, and acts for each person
 
 - **The guide acts for each person (phase 1: programs).** Anyone who uses Programs can start a program through the guide (blank, from a shape, or as a copy, with everything set at once), change every part the editor sets, and switch between the guide and the editor freely; the registrar, admins and the guiding teacher can archive and restore. It does only what the person may do on the site, through the editor's own steps.
@@ -578,6 +588,7 @@ Kept as a tombstone so future work doesn't re-discover or re-propose them. Full 
 
 | Feature | Removed | Why | Detail |
 |---|---|---|---|
+| The one-page program editor (`components/registrar/ProgramEditor.tsx` and its section files) | 2026-10-28 | Replaced by the step-by-step setup and a program's page with Change; setup had to be foolproof and explained | `RIM_ProgramEditor.md`, session-log 2026-10-28 (later) |
 | Google Meet integration | s86 | Replaced by LiveKit | session-log s86 |
 | Support Inbox (+ security hardening) | s100 | Never launched to volunteers; support@ read via Gmail directly | session-log s100; `Role.SUPPORT` enum value still residual → `CLEANUP.md` |
 | Tasks module (TaskList/Task/Subtask) | s96 | Never adopted in practice | session-log s96 |

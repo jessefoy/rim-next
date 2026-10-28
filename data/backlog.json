@@ -2172,5 +2172,35 @@
     "status": "open",
     "addedAt": "2026-10-28",
     "notes": "Known since the signed-in guide (7a34789)."
+  },
+  {
+    "id": "2026-10-28-004",
+    "title": "Archive on a program's page",
+    "description": "Archive and restore are only on the Programs list. The mockup had them on a program's page too, beside View its page, People and Post a notice. Found in the Publish trial.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-28",
+    "notes": "The page already receives canManage for the three roles (components/programSetup/ProgramPage.tsx)."
+  },
+  {
+    "id": "2026-10-28-005",
+    "title": "\"On This Week\" for a Private program",
+    "description": "Where it appears, step 3: \"On This Week\" comes ticked for a Private program, but This Week never shows Private programs (isPubliclyListedCategory), so the tick does nothing. Disable it with a line, as \"On Programs & Events\" is.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-28",
+    "notes": "Found in the Publish trial. lib/programSetup.ts, the where step."
+  },
+  {
+    "id": "2026-10-28-006",
+    "title": "The guide's create_program through drafts",
+    "description": "A program the RIM Guide makes is live at once; on the site, + Add Program keeps a draft until Publish. Offered as a follow-up: the guide could start a draft and publish on a yes, so both ways work alike.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-28",
+    "notes": "Not done by choice in Phase 4: the conversation is the guide's review and it already asks before anything that emails. lib/programDrafts.ts publishDraft is the shared step."
   }
 ]

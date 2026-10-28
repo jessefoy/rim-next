@@ -297,8 +297,8 @@ These are distinct concerns. Conflating them in session 129's first ship caused 
 
 | Signal | Storage | Means | Drives |
 |---|---|---|---|
-| `Hub.hasSchedule` | column on Hub (boolean) | "this hub runs live sessions" and holds primary hosting authority | ProgramEditor's Hosting team dropdown eligibility (the Home month module was retired 2026-10-13) |
-| `usesScheduler` | derived (`HubAppLink` with `toolSlug = "schedule"` exists on the hub) | "this hub uses the Scheduler tool to staff roles" | ProgramEditor's Auxiliary coverage eligibility, Members tab hosting affordances, destructive-action warning |
+| `Hub.hasSchedule` | column on Hub (boolean) | "this hub runs live sessions" and holds primary hosting authority | the program setup's hosting-team choice (`setupTeams`, `lib/programDrafts.ts`) (the Home month module was retired 2026-10-13) |
+| `usesScheduler` | derived (`HubAppLink` with `toolSlug = "schedule"` exists on the hub) | "this hub uses the Scheduler tool to staff roles" | the program setup's "Which teams help at each session?" eligibility, Members tab hosting affordances, destructive-action warning |
 
 Rule of thumb when adding a hub-aware feature:
 - Asking "is this a hosting hub?" → use `hasSchedule`

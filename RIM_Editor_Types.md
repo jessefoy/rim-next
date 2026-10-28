@@ -345,7 +345,7 @@ Not every `.rim-content` wrapper is an editor placement — some render external
 Uses `RimTiptapEditor` with `variant="document"` — the same component and chrome as the Document type. The Dharma block extensions (PullQuote, VerseQuote, PracticeSuggestion, Reflection) are registered globally on the document variant; the placement's CSS scope (`.rim-content--lesson`, `.rim-content--program`) determines how those blocks render.
 
 #### `program-description`
-- **Component:** `components/registrar/ProgramEditor.tsx` (Content tab)
+- **Component:** `components/programSetup/ProgramSetup.tsx` (About, "Tell people about it."; the one-page editor was retired 2026-10-28)
 - **Schema field:** `Program.description`
 - **Output destination:** web template
 - **Output wrapper:** `rim-content rim-content--program prog-description`
@@ -388,7 +388,7 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 
 #### `program-message`
 - **Schema fields:** `Program.confirmationMessage`, `Program.reminderMessage`, `Program.followUpMessage` (the note after a one-time program, 2026-10-24), `Program.danaMessage`
-- **Component:** `components/registrar/ProgramEditor.tsx`, its sections `program-editor/TellSection.tsx` (Messages to those who register: the confirmation, the reminder and the note after, in the order people get them) and `program-editor/DanaSection.tsx`
+- **Component:** `components/programSetup/ProgramSetup.tsx` (2026-10-28: the steps of Messages to those who register, the confirmation, the reminder and the note after, and of Dana; `Program.programNotes` is a message field on About's last step). `RimTiptapEditor` still comes from `components/registrar/program-editor/shared.tsx`, which outlived the one-page editor
 - **Variant:** message
 - **Output destination:** web template + transactional email (the note after renders through `renderFormattedTextAsync` into `program-follow-up`)
 - **Output wrappers:** varies by surface (`pg-dana__message`, email HTML)

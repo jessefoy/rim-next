@@ -6,6 +6,14 @@ The Program Manager is the operational application for creating and maintaining 
 
 ---
 
+## The Publish trial, and a series' dates (2026-10-28, after Phase 4)
+
+**The Publish trial passed** (Jesse's yes): a private, in-person test program from the Workshop shape, no teams, published, its time changed on its page (Before you save: "Every session's time changes, from 7–8 PM CT to 6–7 PM CT."), archived from the Programs list. No emails, notifications or team events; every team's sessions and rotations unchanged.
+
+**A series says when it runs.** `buildDateLabel` (`lib/dateLabel.ts`) adds a repeating series' span: "Thursdays, Dec 3 to 17" when it has an end, "Thursdays, from Dec 3" while an ongoing series hasn't begun, nothing once it is going on. **Pitfall:** every save stores `dateText` ("Thursdays", `computeDateText`, never anyone's wording) and every reader took it first, so a change to the label alone never shows. Read a program's date words with `programDateWords(stored, params)`, which builds a repeating program's fresh and falls back to the stored text. Used by the program page, `buildSubtitle` (the cards), the confirmation and reminder emails, `programWhen` (Registration, Teaching, Helping, the guide). Not in the stored field: "from Dec 3" depends on today.
+
+**Still open from the trial** (backlog): Archive on a program's page (`2026-10-28-004`); "On This Week" ticked for a Private program (`-005`); the guide's `create_program` through drafts (`-006`). For the read-aloud: "Next, you'll say when it ends." shows on the step that asks it; "Teachers can take host controls in Zoom" shows for an in-person program.
+
 ## A program's page, Change, Before you save; the one-page editor retired (2026-10-28, Phase 3)
 
 `/tools/programs/[slug]/edit` is now **a program's page** (`components/programSetup/ProgramPage.tsx`): its name, published or archived, where it's listed and (for the registration roles) how many are registered; View its page, People, Post a notice (`NoticePanel`); **Worth a look** (`missingForPublish`); and seven cards of sentences (`SectionSays`, the review's own), each with **Change**. The guest link (Copy; Reset for the three roles, `POST /api/programs-pg/[slug]/guest-key`) sits in How people join.

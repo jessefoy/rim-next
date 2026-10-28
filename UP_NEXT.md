@@ -1,15 +1,29 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-28 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-28, later (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-28 closed: the RIM Guide signs each volunteer in, edits content, and acts for each person
+## Active — 2026-10-28 (later) closed: setting up a program, step by step
 
-Everything is on `main` (`7a34789` … `9d7d199`, and this closing). Narrative: `session-log.md`, 2026-10-28. Reference: `volunteer-guide/README.md`; the rules: `CLAUDE.md` (the guide row), `RIM_Email_Engineering.md` ("Emails and the RIM Guide"), `RIM_Role_Design.md` ("Content Editor").
+Everything is on `main` (`d1aae53` … `87fb478`, and this closing). Narrative: `session-log.md`, 2026-10-28 (later). Reference: `RIM_ProgramEditor.md` (top sections), `RIM_Scheduler.md` (the exact rule; the words; the guiding teacher), the plan and its "To check" list: `mockups/program-setup-2026-10-28/BUILD_PLAN.md`.
 
-**Live (deployed and loading; not yet used live on real records):** each volunteer signs in to the guide and it reads what they can; it **acts for each person** only as their account may on the site, through the site's own steps: programs (start, change, archive), Registration (every card action, messages, the reminder, settings), teams (the Scheduler's everyday actions, Conversations). **Content editors** (a role Jesse gives) also change content in every editor and the words on the pages (a words-only commit to `main`). **Email is never a surprise:** anything that emails others asks first, with a single-use yes. Every change is listed at `/admin/content-changes`; **one email each evening** lists the changes that shape the site (everyday actions recorded, not emailed). Verified by Jesse in Claude: all 18 action tools load after a reconnect.
+**Live and tried:** + Add Program walks the setup one question at a time as a draft until Publish; Edit opens a program's page in sentences with Change and "Before you save"; the order page; the exact schedule rule and the save's refusals; calendar files; the Scheduler's words; the tutorial and the guide's topics. **The Publish trial passed** (published, changed, archived; no emails). **The guiding teacher leads every team on the Scheduler**, Reset included (Jesse's ruling). **A series shows its dates** ("Fridays, Oct 30 to Nov 20" on Mindful Photography); not yet seen in a real confirmation or reminder email.
 
 **Waiting on Jesse:**
-- **Paste the latest `volunteer-guide/INSTRUCTIONS.md`** into the RIM Guide project (the volunteer voice, Claude docs, the daily email).
+- **The read-aloud** of every question, help line and sentence in the setup, the review and a program's page (provisional until then), plus the Scheduler's new words. Two lines already flagged: "Next, you'll say when it ends." on the step that asks it; "Teachers can take host controls in Zoom" for an in-person program.
+- **Mindful Photography's End** (its page → When and where → Change; it shows "Begins 7 PM" without an end) and its placeholder "Xxxx" text; **archive Private Teacher Meetings**.
+- **The RIM Guide's instructions:** Jesse pasted this evening; confirm it was the whole `volunteer-guide/INSTRUCTIONS.md`, not the chat message.
+
+**Next concrete step:** none owed. **Queued from the trial:** `2026-10-28-004` Archive on a program's page, `-005` "On This Week" for a Private program, `-006` the guide's `create_program` through drafts.
+
+**Working rules from this session:** a repeating program's date words come from `programDateWords` (the stored `dateText` is the save's own "Thursdays" and goes stale); a new CSS prefix is grepped against `custom.css` before use (`ps-` was the staffing page's); the guiding teacher is a lead on every team in every gate (`effectiveCoordinator`, `canManageHubCoverage`).
+
+**Method, for measuring signed-in pages:** the built-in browser pane holds Jesse's session on rim-next.vercel.app; same-origin iframes measure several pages at once. The pane draws streamed pages twice, so measure only the visible copy. Vercel's Security Checkpoint challenges repeated command-line requests; check live pages in the browser pane.
+
+## Earlier — 2026-10-28 closed: the RIM Guide signs each volunteer in, edits content, and acts for each person
+
+Narrative: `session-log.md`, 2026-10-28. Reference: `volunteer-guide/README.md`, `RIM_Email_Engineering.md` ("Emails and the RIM Guide"), `RIM_Role_Design.md` ("Content Editor").
+
+**Still waiting on Jesse from the guide work:**
 - The first evening email (tonight, 8 PM Central, if anything shaping the site changed today after the switch).
 - A first live run: `message_people` with test on, then one real change of each kind when ready.
 - `GITHUB_CONTENT_TOKEN`: check its end date in GitHub and renew before then (the guide now says when the key stops working).
@@ -23,15 +37,13 @@ Everything is on `main` (`7a34789` … `9d7d199`, and this closing). Narrative: 
 
 **Next concrete step:** none owed. **Coming up:** the November 1 sweep (see the 2026-10-22 section); phase 4 (`2026-10-28-002`) after the Course Manager rework. **Queued:** `2026-10-28-001` legacy rawHtml, `2026-10-28-003` the sign-in link, `2026-10-27-002` a Send feedback page, `2026-10-27-001` the webhook guard; from Oct 26: `2026-10-26-001` to `-004`, `2026-10-24-001`.
 
-**Method, for measuring signed-in pages:** the built-in browser pane holds Jesse's session on rim-next.vercel.app; same-origin iframes measure several pages at once. The pane draws streamed pages twice (React 19 waits for an animation frame the pane never runs), so measure only the visible copy. Vercel's Security Checkpoint now challenges repeated command-line requests; check live pages in the browser pane.
-
 ## Earlier — 2026-10-27 closed: the RIM Guide for volunteers; settled dana confirms
 
-Narrative: `session-log.md`, 2026-10-27. Its open items are carried in Active above.
+Narrative: `session-log.md`, 2026-10-27. Its open items are carried in the 2026-10-28 section above.
 
 ## Earlier — 2026-10-26 (later) closed: Registration Team tutorials, the Programs list, one button language
 
-Narrative: `session-log.md`, 2026-10-26 (later). Its open items are carried in Active above.
+Narrative: `session-log.md`, 2026-10-26 (later). Its open items are carried in the 2026-10-28 section above.
 
 ## Earlier — 2026-10-26 closed: Programs and Registration, built and checked
 
